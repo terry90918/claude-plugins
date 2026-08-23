@@ -40,7 +40,7 @@ Pull requests that change marketplace, plugin, script, workflow, or documentatio
 - **THEN** the aggregate validation job fails with evidence identifying the violated invariant
 
 ### Requirement: User-facing documentation follows repository sources of truth
-Current documentation SHALL use `plugin@marketplace` installation identifiers, describe the nine published plugins and GitHub Flow workflow, and SHALL NOT duplicate volatile MCP tool counts across overview metadata when those values cannot be automatically authoritative.
+Current documentation SHALL use `plugin@marketplace` installation identifiers, describe the ten published plugins and GitHub Flow workflow, and SHALL NOT duplicate volatile MCP tool counts across overview metadata when those values cannot be automatically authoritative.
 
 #### Scenario: Installation guidance is followed
 - **WHEN** a user copies a plugin installation identifier from current documentation

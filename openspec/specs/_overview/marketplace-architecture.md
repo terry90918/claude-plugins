@@ -33,6 +33,7 @@ Marketplace entry name、source folder basename 與 manifest name 必須一致�
 | `codebase-sync` | Skill | Documentation synchronization |
 | `learn-eval` | Skill | Session-pattern extraction |
 | `jt-flow` | Skill | `engineering-delivery` Linear-issue-driven single-request delivery |
+| `hook-standards` | Skill | Claude Code hook standard and current guard scripts |
 
 ## Dependency integrity
 
@@ -46,7 +47,7 @@ Mutable tags, unversioned packages, and ranges are rejected by repository valida
 
 ## Versioning
 
-Release Please owns all nine plugin manifest versions and `.claude-plugin/marketplace.json` at `$.plugins[0].version`. `coolify` must remain entry zero unless the release configuration changes in the same proposal. New entries append by default.
+Release Please owns all ten plugin manifest versions and `.claude-plugin/marketplace.json` at `$.plugins[0].version`. `coolify` must remain entry zero unless the release configuration changes in the same proposal. New entries append by default.
 
 ## Delivery
 
