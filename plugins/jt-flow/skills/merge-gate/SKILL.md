@@ -16,7 +16,7 @@ description: >
 ## gate 清單
 
 **以目標 repo 的 `CLAUDE.md` 為準**——它若寫了 PR review 與 merge 契約（例如額外的
-Copilot gate），那份為準。它沒寫時，本 Skill 的預設值是：
+review gate），那份為準。它沒寫時，本 Skill 的預設值是：
 
 - `mergeable` 為 `MERGEABLE`。`UNKNOWN` 表示 GitHub 尚在背景計算，push 後很常見，
   **不是失敗**：依 `using-jt-workflow` 紀律 2 的來源優先序重查，預設**上限 3 次**；

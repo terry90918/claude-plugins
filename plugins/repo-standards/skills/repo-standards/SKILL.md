@@ -552,8 +552,7 @@ PR review 與 merge 的唯一操作契約是目標 repo 自身的 `CLAUDE.md`。
 required checks 與部署方式客製化。建立 PR 後必須 invoke
 `superpowers:requesting-code-review`；收到 finding 時以
 `superpowers:receiving-code-review` 逐項處置、修正或記錄具體拒絕理由，並 resolve
-所有 review thread。合併前還必須符合 CI、`MERGEABLE`／`CLEAN`、Copilot 與
-CodeRabbit gate。
+所有 review thread。合併前還必須符合 CI、`MERGEABLE`／`CLEAN`、CodeRabbit gate。
 
 目標 repo 使用 `engineering-delivery` 時，本地 review 由該 Skill invoke
 `superpowers:requesting-code-review` 擁有；外部 review 交給 `coderabbit:code-review`
@@ -564,8 +563,6 @@ repo 設定必須提供以下前置條件：
 - CodeRabbit：`.coderabbit.yaml` 設定 `reviews.auto_review.enabled: false`，每個 PR
   只明確 request App 一次；CLI 只依 canonical contract 作為 App 無法產生有效 review
   時的 fallback。
-- Copilot：建立針對 repo 客製化的 `.github/copilot-instructions.md`；每個 PR 一次
-  review budget。
 - Codex：被動審查，不主動觸發或等待。
 - 不設定自動 Claude PR review pipeline：不新增 `claude-code-review.yml`、`claude.yml`
   或 Drone `claude-review`，也不需要 `CLAUDE_CODE_OAUTH_TOKEN`。
@@ -591,4 +588,4 @@ repo 設定必須提供以下前置條件：
 - **ESLint**：`eslint --max-warnings=0`，`.prettierignore` 加 `.claude/worktrees/`
 - **CI**：檢查 pipeline `trigger.ref` 只列 `refs/heads/main` + `refs/pull/*/head`（**勿**列 develop）；既有 repo 遷移時，舊平台上所有 CI、release 與版本檢查用途的 workflow 在同一次交付移除（依用途認定，不依檔名）
 - **CD**（Coolify web app）：`.drone.yml` 加 `build`、`deploy`、`release-pr-auto-merge` 三個 pipeline + release-commit 守衛 + 關閉 Coolify auto-deploy + secret `COOLIFY_DEPLOY_TOKEN`（npm/MCP repo 不需要）
-- **Code Review**：將 packaged review contract 寫入目標 `CLAUDE.md` 後，依其 invoke Skill-driven review；CodeRabbit 一次明確 App request、Copilot 一次、Codex 被動；**無**自動 Claude review
+- **Code Review**：將 packaged review contract 寫入目標 `CLAUDE.md` 後，依其 invoke Skill-driven review；CodeRabbit 一次明確 App request、Codex 被動；**無**自動 Claude review
