@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.41.6](https://github.com/jurislm/jurislm-tools/compare/v1.41.5...v1.41.6) (2026-08-23)
+
+
+### 🐛 Bug Fixes
+
+* **repo-standards:** 同步 merge gate 標準，MERGEABLE／CLEAN 過嚴 ([6ca6467](https://github.com/jurislm/jurislm-tools/commit/6ca6467e182422a6f5e1e83cb89c6d68e31d4142))
+
 ## [1.41.5](https://github.com/jurislm/jurislm-tools/compare/v1.41.4...v1.41.5) (2026-08-23)
 
 
