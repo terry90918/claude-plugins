@@ -100,7 +100,9 @@ timeout 10 秒。比對前先把指令轉小寫。
   `$CMD` 展開成 `rm -rf ...` 攔不到。
 - 非 Bash 途徑的刪除——MCP 工具、`Edit`／`Write` 覆寫檔案都不經過這裡。
 - `jq` 不存在或解析失敗時取到空字串，比對不中，放行。與 `git-guard.sh` 同一個
-  fail-open。
+  fail-open，而且**不是假想情境**：本 repo 的 CI 跑 `node:*-bookworm-slim`，該映像不含
+  `jq`，守衛在那裡整支形同不存在。`hook-standards-policy.test.mjs` 因此在有無 `jq`
+  的環境下各自斷言，而不是跳過。
 - `rm -r` 不帶 `-f`、`DELETE FROM`、`ALTER TABLE DROP COLUMN` 等其他破壞性 SQL。
   清單是列舉式的，不是語意分析。
 

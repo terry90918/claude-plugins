@@ -147,17 +147,29 @@ test("SKILL.md 列的 git global option 與 git-guard.sh 實際列舉的一致",
   }
 });
 
-test("destructive-guard 的行為與 catalog 記載的邊界相符", () => {
+function decideDestructive(command) {
   const guard = fileURLToPath(new URL("destructive-guard.sh", scriptsRoot));
+  const result = spawnSync("bash", [guard], {
+    input: JSON.stringify({ tool_input: { command } }),
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, `${command} 不得讓守衛以非零退出碼結束`);
+  if (result.stdout.trim() === "") return null;
+  return JSON.parse(result.stdout).hookSpecificOutput.permissionDecision;
+}
 
-  function decide(command) {
-    const result = spawnSync("bash", [guard], {
-      input: JSON.stringify({ tool_input: { command } }),
-      encoding: "utf8",
-    });
-    assert.equal(result.status, 0, `${command} 不得讓守衛以非零退出碼結束`);
-    if (result.stdout.trim() === "") return null;
-    return JSON.parse(result.stdout).hookSpecificOutput.permissionDecision;
+// 守衛以 jq 解析 stdin。CI 跑的 node:*-slim 映像沒有 jq，守衛在那裡整支 fail-open
+// ——catalog 的「不攔什麼」明載這件事。所以 jq 不在時不跳過測試，改為驗證那條
+// fail-open 本身：兩種環境下斷言的內容不同，但都是文件宣稱為真的行為。
+const jqAvailable = spawnSync("jq", ["--version"]).status === 0;
+
+test("destructive-guard 的行為與 catalog 記載的邊界相符", () => {
+  const decide = decideDestructive;
+
+  if (!jqAvailable) {
+    assert.equal(decide("rm -rf /tmp/x"), null, "無 jq 時應如 catalog 所載整支放行");
+    assert.equal(decide("prisma migrate reset"), null, "無 jq 時應如 catalog 所載整支放行");
+    return;
   }
 
   // catalog 說會攔的
