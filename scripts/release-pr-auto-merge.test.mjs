@@ -73,6 +73,11 @@ const PLUGIN_DEFINITIONS = [
     description: "Higgsfield AI 圖像、影片、3D 與音訊生成 — 官方 remote MCP 與 CLI skills",
     keywords: ["image-generation", "video", "audio", "mcp"],
   },
+  {
+    name: "hook-standards",
+    description: "Claude Code hook 規格與現行守衛 — 入選判準、deny/ask 選擇與匹配紀律",
+    keywords: ["hooks", "claude", "settings", "guardrails"],
+  },
 ];
 
 const PLUGIN_PATHS = PLUGIN_DEFINITIONS.map(

@@ -37,6 +37,7 @@ claude plugin update coolify@jurislm-tools
 | `codebase-sync` | Skill | `claude plugin install codebase-sync@jurislm-tools` | README 與 CLAUDE.md 同步 |
 | `learn-eval` | Skill | `claude plugin install learn-eval@jurislm-tools` | 從 session 萃取可重用 patterns |
 | `jt-flow` | Skill | `claude plugin install jt-flow@jurislm-tools` | `engineering-delivery` 以 Linear issue 為來源的單一需求端到端交付工作流 |
+| `hook-standards` | Skill | `claude plugin install hook-standards@jurislm-tools` | Claude Code hook 規格與三支現行守衛腳本 |
 
 Skills 由自然語言意圖觸發；本 repo 不再提供舊版 `/jt:*` 或 `/jt-flow` slash commands。
 
