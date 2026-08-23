@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.41.4](https://github.com/jurislm/jurislm-tools/compare/v1.41.3...v1.41.4) (2026-08-23)
+
+
+### 🐛 Bug Fixes
+
+* **repo-standards:** 移除已退役 develop 分支殘留的 dev app CD/CI 規則 ([801db91](https://github.com/jurislm/jurislm-tools/commit/801db91d04ea42f5f83406cb86e75053abf56a88))
+
 ## [1.41.3](https://github.com/jurislm/jurislm-tools/compare/v1.41.2...v1.41.3) (2026-08-23)
 
 
