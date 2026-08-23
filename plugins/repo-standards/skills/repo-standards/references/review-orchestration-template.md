@@ -23,16 +23,15 @@ repo 內 `verification-logs/` 的一筆帶日期紀錄——這是每個 repo �
 每個 PR 只 request App 一次。App 產出有效 review 後不執行 CLI；只有 App 進入終態且
 未產出有效 review 時，CLI 才可執行一次 fallback。
 
-Copilot 每個 PR 只有一次 review budget，並使用 repo 專屬
-`.github/copilot-instructions.md`。Codex 是被動審查：不主動 request 或等待；平台自動
-貼出的 finding 仍逐項核實。不要設定自動 Claude PR review pipeline。
+Codex 是被動審查：不主動 request 或等待；平台自動貼出的 finding 仍逐項核實。不要設定
+自動 Claude PR review pipeline。
 
 ## Merge gates
 
 合併前必須同時滿足：[repo-required checks] 全綠、最新 HEAD 的
 `mergeable=MERGEABLE`、`mergeStateStatus` 為 `CLEAN`／`UNSTABLE`／`HAS_HOOKS`（不可為
-`BLOCKED`／`DIRTY`／`BEHIND`）、所有 review thread 已 resolve、Copilot 與 CodeRabbit
-沒有未處理 finding。合併後依 repo 的 release／deploy 契約監看其終態。
+`BLOCKED`／`DIRTY`／`BEHIND`）、所有 review thread 已 resolve、CodeRabbit 沒有未處理
+finding。合併後依 repo 的 release／deploy 契約監看其終態。
 
 ⚠️ **不要要求 `mergeStateStatus=CLEAN`**：`UNSTABLE` 的定義就是「只有非必要的 check
 沒過」，外部 review 額度耗盡留下的正是這種；要求 `CLEAN` 會與「額度耗盡不擋合併」互相

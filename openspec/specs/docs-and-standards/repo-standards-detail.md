@@ -17,7 +17,7 @@ repo-standards packaged `review-orchestration-template.md` 並依 target 客製�
 invoke `superpowers:requesting-code-review`、以
 `superpowers:receiving-code-review` 處置 findings、resolve threads，並通過 CI、
 mergeability 與外部 review gates。`repo-standards` 只負責設定 CodeRabbit 的一次明確
-App review、Copilot 指示與無自動 Claude review pipeline 等前置條件。
+App review 與無自動 Claude review pipeline 等前置條件。
 
 目標 repo 使用 `engineering-delivery` 時，本地 review 由該 Skill 發起並擁有；外部 review
 交給 `coderabbit:code-review` skill，不另起第二套審查機制。
@@ -29,7 +29,6 @@ App review、Copilot 指示與無自動 Claude review pipeline 等前置條件�
 | `repo-standards` skill | `plugins/repo-standards/skills/repo-standards/SKILL.md` | 規範主體 |
 | `/repo-standards` command | `plugins/repo-standards/commands/repo-standards.md` | 入口 command |
 | review orchestration template | `plugins/repo-standards/skills/repo-standards/references/review-orchestration-template.md` | 寫入 target `CLAUDE.md` 的可攜 review 契約 |
-| code-review-setup reference | `plugins/repo-standards/skills/repo-standards/references/code-review-setup.md` | Copilot 自訂指示設定（自動 Claude review 已移除，2026-06-02）|
 | eslint-templates reference | `plugins/repo-standards/skills/repo-standards/references/eslint-templates.md` | ESLint 設定模板 |
 | ci-workflow-templates reference | `plugins/repo-standards/skills/repo-standards/references/ci-workflow-templates.md` | Flat-repo 與 monorepo Drone CI 模板 |
 
