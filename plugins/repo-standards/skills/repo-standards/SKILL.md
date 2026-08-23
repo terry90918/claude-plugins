@@ -560,7 +560,8 @@ repo 設定必須提供以下前置條件：
 - CodeRabbit：`.coderabbit.yaml` 設定 `reviews.auto_review.enabled: false`，每個 PR
   只明確 request App 一次；CLI 只依 canonical contract 作為 App 無法產生有效 review
   時的 fallback。
-- Codex：被動審查，不主動觸發或等待。
+- Codex：屬帳號層級設定，是否自動審查、何時觸發依各貢獻者個人 Codex 帳號，repo
+  不做覆寫；平台自動貼出的 finding 仍逐項核實。
 - 不設定自動 Claude PR review pipeline：不新增 `claude-code-review.yml`、`claude.yml`
   或 Drone `claude-review`，也不需要 `CLAUDE_CODE_OAUTH_TOKEN`。
 
@@ -585,4 +586,4 @@ repo 設定必須提供以下前置條件：
 - **ESLint**：`eslint --max-warnings=0`，`.prettierignore` 加 `.claude/worktrees/`
 - **CI**：檢查 pipeline `trigger.ref` 只列 `refs/heads/main` + `refs/pull/*/head`；既有 repo 遷移時，舊平台上所有 CI、release 與版本檢查用途的 workflow 在同一次交付移除（依用途認定，不依檔名）
 - **CD**（Coolify web app）：`.drone.yml` 加 `build`、`deploy`、`release-pr-auto-merge` 三個 pipeline + release-commit 守衛 + 關閉 Coolify auto-deploy + secret `COOLIFY_DEPLOY_TOKEN`（npm/MCP repo 不需要）
-- **Code Review**：將 packaged review contract 寫入目標 `CLAUDE.md` 後，依其 invoke Skill-driven review；CodeRabbit 一次明確 App request、Codex 被動；**無**自動 Claude review
+- **Code Review**：將 packaged review contract 寫入目標 `CLAUDE.md` 後，依其 invoke Skill-driven review；CodeRabbit 一次明確 App request、Codex 依個人帳號設定；**無**自動 Claude review
