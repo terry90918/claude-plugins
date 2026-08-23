@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.42.0](https://github.com/jurislm/jurislm-tools/compare/v1.41.6...v1.42.0) (2026-08-23)
+
+
+### 🚀 New Features
+
+* **hook-standards:** 新增 Claude Code hook 規格 plugin ([f06c99d](https://github.com/jurislm/jurislm-tools/commit/f06c99d18b89894653b07b2539a9e0fe32872cd8))
+
 ## [1.41.6](https://github.com/jurislm/jurislm-tools/compare/v1.41.5...v1.41.6) (2026-08-23)
 
 
