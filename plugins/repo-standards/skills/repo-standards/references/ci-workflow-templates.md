@@ -11,7 +11,7 @@
 >
 > 四種類型的 CI 與 release 都由自架 Drone（`https://ci.jurislm.com`）擁有。上游 fork（例如 `jurislm/firecrawl`）保留上游自己的 workflow，不受本表約束。
 >
-> Code review：依目標 repo `CLAUDE.md` 的 Skill-driven contract 執行；缺少時先採用 `references/review-orchestration-template.md` 並客製化。CodeRabbit auto-review 關閉並明確 request App 一次、Codex 被動。**自動 Claude PR 審查已從標準移除**，不再設 `claude-code-review.yml` / `claude.yml` 或 Drone `claude-review` pipeline。
+> Code review：依目標 repo `CLAUDE.md` 的 Skill-driven contract 執行；缺少時先採用 `references/review-orchestration-template.md` 並客製化。CodeRabbit auto-review 關閉並明確 request App 一次、Codex 依個人帳號設定。**自動 Claude PR 審查已從標準移除**，不再設 `claude-code-review.yml` / `claude.yml` 或 Drone `claude-review` pipeline。
 
 ---
 

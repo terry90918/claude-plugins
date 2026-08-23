@@ -76,7 +76,7 @@
 
 39. [ ] 將 `references/review-orchestration-template.md` 的 `PR review and merge contract` 寫入目標 repo `CLAUDE.md`，依 required checks 與部署方式客製化；建立 PR 後 invoke `superpowers:requesting-code-review`，finding 以 `superpowers:receiving-code-review` 逐項處置，accepted finding 修正驗證、rejected finding 記錄具體理由，並 resolve 全部 review thread
 40. [ ] 建立 `.coderabbit.yaml`，設定 `reviews.auto_review.enabled: false`；每個 PR 只明確 request CodeRabbit App 一次，僅在 App 無法產生有效 review 時依 canonical contract 使用 CLI fallback
-41. [ ] Codex 為被動審查，不主動觸發或等待；合併前確認 CI 全綠、`MERGEABLE`／`CLEAN`、CodeRabbit 無未處理意見；不設定自動 Claude PR review pipeline
+41. [ ] Codex 屬帳號層級設定，是否自動審查依各貢獻者個人帳號、repo 不覆寫，不主動 request 或等待其回應；合併前確認 CI 全綠、`MERGEABLE`／`CLEAN`、CodeRabbit 無未處理意見；不設定自動 Claude PR review pipeline
 
 ## 發版收尾（每次合併進 main 後必做）
 
