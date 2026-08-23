@@ -61,7 +61,7 @@
 > **deploy-gating 目標是 push main**：重複部署問題發生在 release PR / 純版號 chore commit 合併進 main 重觸發部署；守衛跳過這類純版號 commit 即可避免。
 
 30. [ ] `.drone.yml` 加 `build` pipeline（抓 lint/typecheck 抓不到的 build-only 失敗，flat repo／monorepo 皆需要，非 monorepo 專屬）
-31. [ ] `.drone.yml` 為每個部署的 app 加 `deploy` pipeline/step（`push` main、`depends_on` 含 `lint-typecheck`／`test`／`build`、`clone: { disable: true }`）
+31. [ ] `.drone.yml` 為每個部署的 app 加獨立的 `deploy` pipeline（`push` main、`depends_on` 含 `lint-typecheck`／`test`／`build`、`clone: { disable: true }`）
 32. [ ] `deploy` + `lint-typecheck` + `test` + `build` 各 step 加 release-commit 守衛：`echo "$DRONE_COMMIT_MESSAGE" | grep -qE '^chore(\(.+\))?: release [0-9]'`（**grep 全訊息、勿加 `head -1`**——merge commit 合併時 release 行在 body，head -1 漏判 → 誤部署）
 33. [ ] Drone repo-scope secret 加 `COOLIFY_DEPLOY_TOKEN`（`pull_request: false`）
 34. [ ] 先驗證 Drone→Coolify deploy API 接線可用，再**關閉該 app 的 Coolify `is_auto_deploy_enabled`**（避免部署被靜默停止）
