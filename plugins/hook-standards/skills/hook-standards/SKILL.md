@@ -72,8 +72,13 @@ Bash 那一條路徑。
 - **任何錯誤 `exit 0`，絕不阻斷 session。** hook 自己壞掉不該讓使用者無法工作。
 - **冪等。** 同一支腳本可能掛在多個事件上（例如 `SessionStart` 加 `PostToolUse`），
   重複執行不得產生第二次副作用。
-- **提供停用開關。** 用 env var，例如 `CLAUDE_HOOKSPATH_FIX_DISABLE=1`。hook 壞掉時要
-  有一條不改檔案就能關掉的路徑。
+- **修復型 hook 必須提供停用開關**，用 env var，例如 `CLAUDE_HOOKSPATH_FIX_DISABLE=1`。
+  它會改寫狀態，壞掉時要有一條不改檔案就能關掉的路徑。純 `deny`／`ask` 的守衛不強制
+  ——移除註冊就等於關掉，而守衛多一個開關等於多一條繞過路徑。三支現行守衛裡只有
+  `worktree-hookspath-fix.sh` 有開關，這是刻意的分界。
+- **外部工具不可用時的行為必須是明確的選擇。** 三支守衛都用 `jq` 解析 stdin；`jq` 不在
+  時取到空字串、比對不中、放行——那是 fail-open。這個取捨可以接受，但要寫進
+  `references/hook-catalog.md` 的「不攔什麼」，不能讓它變成沒人知道的預設。
 - **環境類修正不動全域設定。** 優先用 env var、臨時設定檔、單次指令參數。動全域設定
   留下的副作用不會出現在任何一次 review 的 diff 裡。
 
@@ -144,10 +149,14 @@ chmod +x "$HOME"/.claude/hooks/*.sh
 兩個刻意的設計，改動前先讀懂：
 
 - **不要讓 `settings.json` 直接指向 plugin 內的路徑。** 快取路徑帶版號
-  （`~/.claude/plugins/cache/jurislm-tools/<plugin>/<version>/`），每次 release 版號一跳
-  路徑就斷——而 hook 找不到檔案時是靜默不執行。更新 plugin 之後要重新複製一次。
-- **本 plugin 不提供 `hooks/hooks.json`。** 那會讓 Claude Code 自動掛上事件，與個人層
-  `settings.json` 既有的註冊雙重觸發，同一個 Bash 指令會跑兩次 guard。
+  （`~/.claude/plugins/cache/jurislm-tools/<plugin>/<version>/`），每次 release 就換一個
+  目錄。舊目錄不會自動清掉，所以指過去的實際結果通常不是「路徑斷掉」，而是**繼續跑
+  舊版腳本**；目錄真的被清掉時才變成 hook 靜默不執行。兩種都不報錯。更新 plugin 之後
+  要重新複製一次。
+- **本 plugin 不提供 `hooks/hooks.json`，`plugin.json` 也不帶 `hooks` 欄位。** 兩者都會讓
+  Claude Code 自動掛上事件——manifest 的 `hooks` 欄位可以指向任意路徑，而且與預設位置
+  是**合併**而不是取代。任一存在都會與個人層 `settings.json` 既有的註冊雙重觸發，同一個
+  Bash 指令跑兩次 guard。`scripts/hook-standards-policy.test.mjs` 兩條路徑都擋。
 
 ## 現行守衛
 

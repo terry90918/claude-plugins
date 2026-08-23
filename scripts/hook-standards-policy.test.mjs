@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 const repositoryRoot = new URL("../", import.meta.url);
 const pluginRoot = new URL("plugins/hook-standards/", repositoryRoot);
@@ -104,12 +106,74 @@ test("SKILL.md 八節齊備", () => {
   }
 });
 
-test("plugin 不得提供 hooks.json，避免與個人層註冊雙重觸發", () => {
+test("plugin 不得以任何方式自動註冊 hook", () => {
+  // 自動註冊有兩條路徑，擋一條不夠：預設位置 hooks/hooks.json，以及 manifest 的
+  // hooks 欄位——後者可指向任意路徑，且與預設位置是合併而非取代。
   assert.equal(
     existsSync(new URL("hooks/hooks.json", pluginRoot)),
     false,
-    "hook-standards 刻意不自動註冊；加上 hooks/hooks.json 會讓同一個 Bash 指令跑兩次 guard",
+    "加上 hooks/hooks.json 會讓同一個 Bash 指令跑兩次 guard",
   );
+
+  const manifest = JSON.parse(read(new URL(".claude-plugin/plugin.json", pluginRoot)));
+  assert.equal(
+    Object.hasOwn(manifest, "hooks"),
+    false,
+    "plugin.json 的 hooks 欄位同樣會自動註冊，與個人層 settings.json 雙重觸發",
+  );
+});
+
+test("SKILL.md 列的 git global option 與 git-guard.sh 實際列舉的一致", () => {
+  // SKILL.md 逐字複述了 git-guard.sh 的選項清單，這是整份交付裡唯一被抄寫兩次的事實。
+  // 沒有這條斷言，改了腳本而忘了改文件不會有任何東西發現。
+  const guard = read(new URL("git-guard.sh", scriptsRoot));
+  const line = guard.match(/^GIT_GLOBAL_OPT=.*$/m);
+  assert.ok(line, "git-guard.sh 必須有 GIT_GLOBAL_OPT 定義");
+
+  const options = [...line[0].matchAll(/(--[a-z-]+=?|-[A-Za-z])(?=\[|\||\))/g)].map(
+    (match) => match[1],
+  );
+  assert.ok(options.length > 0, "GIT_GLOBAL_OPT 必須列舉至少一個選項");
+
+  const skill = read(new URL("SKILL.md", skillRoot));
+  const discipline = skill.split(/^## /m).find((section) => section.startsWith("匹配紀律"));
+  assert.ok(discipline, "SKILL.md 必須有匹配紀律章節");
+
+  for (const option of options) {
+    assert.ok(
+      discipline.includes(option),
+      `SKILL.md 的匹配紀律必須列出 ${option}，否則文件與 git-guard.sh 已經漂移`,
+    );
+  }
+});
+
+test("destructive-guard 的行為與 catalog 記載的邊界相符", () => {
+  const guard = fileURLToPath(new URL("destructive-guard.sh", scriptsRoot));
+
+  function decide(command) {
+    const result = spawnSync("bash", [guard], {
+      input: JSON.stringify({ tool_input: { command } }),
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 0, `${command} 不得讓守衛以非零退出碼結束`);
+    if (result.stdout.trim() === "") return null;
+    return JSON.parse(result.stdout).hookSpecificOutput.permissionDecision;
+  }
+
+  // catalog 說會攔的
+  assert.equal(decide("rm -rf /tmp/x"), "ask");
+  assert.equal(decide("psql -c 'DROP TABLE users'"), "ask");
+  assert.equal(decide("prisma migrate reset"), "ask");
+
+  // catalog 的「不攔什麼」列出的漏網，實測確認過。這些斷言不是在慶祝漏網，
+  // 而是釘住文件宣稱的邊界——哪天腳本補上了，這裡會紅，文件就必須跟著改。
+  assert.equal(decide("rm -f -r /tmp/x"), null, "catalog 記載旗標順序變體會漏");
+  assert.equal(decide("rm --recursive --force /tmp/x"), null, "catalog 記載長旗標會漏");
+  assert.equal(decide("rm -r /tmp/x"), null, "catalog 記載不帶 -f 不攔");
+  assert.equal(decide("rm  -rf /tmp/x"), null, "catalog 記載多一個空白就漏");
+
+  // 不該誤擋的
+  assert.equal(decide("git status"), null);
 });
 
 test("marketplace 收錄 hook-standards，且 coolify 仍在索引 0", () => {

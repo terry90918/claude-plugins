@@ -46,7 +46,7 @@ Mutable tags, unversioned packages, and ranges are rejected by repository valida
 
 ## Versioning
 
-Release Please owns all nine plugin manifest versions and `.claude-plugin/marketplace.json` at `$.plugins[0].version`. `coolify` must remain entry zero unless the release configuration changes in the same proposal. New entries append by default.
+Release Please owns all ten plugin manifest versions and `.claude-plugin/marketplace.json` at `$.plugins[0].version`. `coolify` must remain entry zero unless the release configuration changes in the same proposal. New entries append by default.
 
 ## Delivery
 
