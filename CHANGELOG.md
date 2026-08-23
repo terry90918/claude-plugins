@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.41.3](https://github.com/jurislm/jurislm-tools/compare/v1.41.2...v1.41.3) (2026-08-23)
+
+
+### 🐛 Bug Fixes
+
+* **repo-standards:** 退役已不使用的 Copilot code review 要求 ([15ebe28](https://github.com/jurislm/jurislm-tools/commit/15ebe284a76a60b6a680f694c99b94605b8ec8b2))
+
 ## [1.41.2](https://github.com/jurislm/jurislm-tools/compare/v1.41.1...v1.41.2) (2026-08-22)
 
 
