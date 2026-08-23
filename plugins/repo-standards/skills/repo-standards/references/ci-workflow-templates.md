@@ -26,7 +26,7 @@
   |------|-----|-----------|
   | push main | `refs/heads/main` | ✅ |
   | PR（任意分支）| `refs/pull/*/head` | ✅ |
-  | push develop / feature | `refs/heads/develop` … | ❌ 不 build |
+  | push 非 main 分支（未開 PR）| `refs/heads/<other>` | ❌ 不 build |
 
 - **`event` 仍保留**（`push` + `pull_request`）以排除 tag / cron / promote。
 - **YAML anchor 無法跨 document（`---`）**，故 `trigger` / `install` step / 守衛在各 pipeline **重複撰寫**（無法共用 anchor）。
@@ -35,11 +35,11 @@
 
 ## 核心原則：避免重複觸發（Drone 版）
 
-GitHub Actions 時代的雷是「`push: develop` 與 `pull_request` 重疊 → CI 跑兩次」。Drone 用 **`trigger.ref` 只列 `refs/heads/main` + `refs/pull/*/head`** 從根本避免：
+GitHub Actions 時代的雷是「`push` 與 `pull_request` 的 trigger.ref 重疊 → CI 跑兩次」。Drone 用 **`trigger.ref` 只列 `refs/heads/main` + `refs/pull/*/head`** 從根本避免：
 
-- 中間分支（`develop`、`feature`）**只**由 `refs/pull/*/head`（PR）觸發。
-- **不要**把 `refs/heads/develop` 放進 `trigger.ref` —— 否則 push develop + PR 會雙 build 並行競爭 runner。
+- Feature 分支**只**由 `refs/pull/*/head`（PR）觸發。
 - `push main` 仍 build，作為 post-merge safety net（force-push / rebase merge / release-please commit 等繞過 PR 的情況）。
+- 兩者涵蓋範圍不重疊，同一次變更不會同時被 push 與 PR 觸發。
 
 > ⚠️ 對應教訓：原 GitHub Actions Issue #82（duplicate runs）。Drone 的 `trigger.ref` 設計即為此而生。
 
@@ -365,9 +365,9 @@ steps:
 
 **問題**：Coolify auto-deploy 對**每一個** push 到 main 都部署，包含 release-please 的純版號 commit（`chore(main): release X.Y.Z`）。所以每次發版，**相同應用程式碼會被部署兩次**：feature 合併一次、release PR 合併再一次。
 
-**解法**：把部署觸發從 Coolify webhook 移到 Drone 的 `deploy` pipeline（可讀 `$DRONE_COMMIT_MESSAGE` 判斷），並**關閉 PROD app 的 Coolify auto-deploy**。
+**解法**：把部署觸發從 Coolify webhook 移到 Drone 的 `deploy` pipeline（可讀 `$DRONE_COMMIT_MESSAGE` 判斷），並**關閉該 app 的 Coolify auto-deploy**。
 
-> **範圍：只 gate PROD（push main），DEV 維持 auto-deploy**。重複部署問題是 prod-only——release PR / 純版號 `chore` commit 合併進 main 才會重觸發部署；dev（push develop）無 release PR、無此問題。且本標準 `trigger.ref` 不含 develop → Drone **不在 develop push 建置** → 無法接管 dev 部署。故 dev app **一律維持 Coolify auto-deploy**；多 app 的 monorepo 只為每個 **prod** app 設 deploy step + 關該 prod app 的 auto-deploy。
+> **範圍：gate push main**。重複部署問題只在 release PR / 純版號 `chore` commit 合併進 main 時發生；守衛跳過這類 commit 即可避免。多 app 的 monorepo 為每個部署的 app 各設 deploy step + 關閉其 auto-deploy。
 
 ### 設定步驟
 
@@ -379,7 +379,7 @@ steps:
 2. **加 Drone repo-scope secret `COOLIFY_DEPLOY_TOKEN`**（Drone Web UI Settings → Secrets，或 Drone API；設 `pull_request: false` 不暴露給 PR build）。
 3. **`.drone.yml` 加 `build` 與 `deploy` pipeline**（模板 A）+ 在 `lint-typecheck` / `test` / `build` 各步加同樣守衛；`deploy` 的 `depends_on` 涵蓋這三者。
 4. **驗證 Drone → Coolify 接線可用**（保留 auto-deploy 當安全網，合併一次觀察 Drone deploy pipeline 成功觸發 Coolify）。
-5. **確認 OK 後只關閉 PROD app 的 Coolify auto-deploy**（`is_auto_deploy_enabled = false`；**dev app 不動**）。⚠️ Coolify GET application API **不回傳**此欄位，無法讀取驗證 → 用「合併後是否只有一次部署」行為驗證。
+5. **確認 OK 後關閉該 app 的 Coolify auto-deploy**（`is_auto_deploy_enabled = false`）。⚠️ Coolify GET application API **不回傳**此欄位，無法讀取驗證 → 用「合併後是否只有一次部署」行為驗證。
 6. **`.drone.yml` 加 `release-pr-auto-merge` pipeline**（Coolify app 的 `depends_on: [release, deploy]`；其他 repo 必須依自身 trusted validation／release pipelines 綁定同一 delivery；`concurrency: { limit: 1 }`）。它必須自動合併通過 contract 的 release PR，不提供 manual merge fallback（見下方「部署收尾」）。
 
 ### 守衛邏輯（為何這樣寫）
