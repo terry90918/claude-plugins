@@ -549,7 +549,9 @@ PR review 與 merge 的唯一操作契約是目標 repo 自身的 `CLAUDE.md`。
 required checks 與部署方式客製化。建立 PR 後必須 invoke
 `superpowers:requesting-code-review`；收到 finding 時以
 `superpowers:receiving-code-review` 逐項處置、修正或記錄具體拒絕理由，並 resolve
-所有 review thread。合併前還必須符合 CI、`MERGEABLE`／`CLEAN`、CodeRabbit gate。
+所有 review thread。合併前還必須符合 CI、`mergeable=MERGEABLE`、`mergeStateStatus`
+為 `CLEAN`／`UNSTABLE`／`HAS_HOOKS`（不可為 `BLOCKED`／`DIRTY`／`BEHIND`；不要求
+`CLEAN`——理由見 `references/review-orchestration-template.md`）、CodeRabbit gate。
 
 目標 repo 使用 `engineering-delivery` 時，本地 review 由該 Skill invoke
 `superpowers:requesting-code-review` 擁有；外部 review 交給 `coderabbit:code-review`
