@@ -33,6 +33,20 @@
   會同時關掉**。
 - **`-n` 不在比對範圍。** 它是 `git commit --no-verify` 的短旗標，實測
   `git commit -n -m fix` 放行。`SKIP_FLAG` 只比對長格式字面。
+- **`-C` 之前若有其他 global option，目標 repo 解析會失效。** 偵測 push 時列舉了
+  global option，但 `resolve_target` 只認緊接在 `git` 後面的 `-C`。實測
+  `git --no-pager -C <停在預設分支的 repo> push origin some-feature` 放行，而拿掉
+  `--no-pager` 的同一條指令被 deny——差別只在那一個選項。
+- **多行 payload 取的是最後一個 `cd`，不是 push 之前那個。** 截斷用的 `awk` 逐行處理，
+  沒有把整段指令在第一個 push 處切斷。實測
+
+  ```text
+  cd <停在預設分支的 repo>
+  git push origin some-feature
+  cd <停在 feature 分支的 worktree>
+  ```
+
+  整段放行——解析到的是第三行那個 `cd`，而真正發生 push 的是第一個目錄。
 - 引號內看起來像 git 指令的字串。要根治需要真正的 shell parser，不值得那個複雜度。
 - 非 Bash 途徑的 push——MCP 工具、GUI、IDE 整合都看不到。
 - remote 不存在，或 `refs/remotes/<remote>/HEAD` 查不到時，直接 `exit 0` 放行。

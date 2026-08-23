@@ -131,32 +131,107 @@ Bash 那一條路徑。
 
 ## 安裝與更新
 
-本 plugin 內的腳本是真身，但 Claude Code **不會自動註冊它們**。
+本 plugin 內的腳本是真身，但 Claude Code **不會自動註冊它們**。安裝分兩步：複製檔案，
+再自己寫註冊。
 
-複製到個人層並給執行權限：
+### 一、複製腳本
+
+版本目錄用解析的，不要手填——快取裡通常留著多個版本，填錯會複製到舊版而且不會報錯：
 
 ```bash
-cp "$HOME/.claude/plugins/cache/jurislm-tools/hook-standards/<version>/skills/hook-standards/scripts/"*.sh "$HOME/.claude/hooks/"
+SRC=$(ls -d "$HOME"/.claude/plugins/cache/jurislm-tools/hook-standards/*/skills/hook-standards/scripts | sort -V | tail -1)
 ```
 
 ```bash
-chmod +x "$HOME"/.claude/hooks/*.sh
+mkdir -p "$HOME/.claude/hooks" && cp "$SRC"/*.sh "$HOME/.claude/hooks/" && chmod +x "$HOME"/.claude/hooks/*.sh
 ```
 
-註冊寫進 `~/.claude/settings.json` 的 `hooks` 區塊。編輯 `settings.json` 依
-`update-config` Skill 操作，不要憑記憶手改 JSON。
+### 二、註冊
 
-兩個刻意的設計，改動前先讀懂：
+寫進 `~/.claude/settings.json` 的 `hooks` 區塊。三支腳本對應的事件、matcher 與 timeout
+如下，這是完整內容，照抄即可：
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/worktree-hookspath-fix.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/git-guard.sh",
+            "if": "Bash(git *)",
+            "timeout": 10,
+            "statusMessage": "檢查 git 安全禁令"
+          },
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/destructive-guard.sh",
+            "timeout": 10,
+            "statusMessage": "檢查破壞性指令"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "EnterWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/hooks/worktree-hookspath-fix.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`git-guard.sh` 帶 `if` 條件只跑在 git 指令上；`destructive-guard.sh` 不帶條件，所有 Bash
+指令都過一遍。`worktree-hookspath-fix.sh` 掛兩個事件是刻意的——開新 worktree 當下就要
+修，不能等到下次 session 才修。
+
+若 `settings.json` 已有 `hooks` 區塊，是**合併**進去而不是整段覆蓋。手改 JSON 容易改壞，
+有 `update-config` Skill 的環境用它操作；沒有的話改完至少驗一次：
+
+```bash
+python3 -m json.tool "$HOME/.claude/settings.json" > /dev/null && echo "settings.json 格式正確"
+```
+
+註冊後開一個新 session 才會生效。驗證方式是餵一條該被擋的指令給腳本，看它印出決策：
+
+```bash
+echo '{"tool_input":{"command":"git push origin main"}}' | bash "$HOME/.claude/hooks/git-guard.sh"
+```
+
+腳本只印 JSON 決策，不會執行那條指令，所以這個探針是安全的。沒有輸出代表放行——
+若預期該被擋卻沒有輸出，先確認 `jq` 是否存在。
+
+### 三、更新
+
+plugin 更新之後**要重新跑第一步**。兩個刻意的設計，改動前先讀懂：
 
 - **不要讓 `settings.json` 直接指向 plugin 內的路徑。** 快取路徑帶版號
   （`~/.claude/plugins/cache/jurislm-tools/<plugin>/<version>/`），每次 release 就換一個
   目錄。舊目錄不會自動清掉，所以指過去的實際結果通常不是「路徑斷掉」，而是**繼續跑
-  舊版腳本**；目錄真的被清掉時才變成 hook 靜默不執行。兩種都不報錯。更新 plugin 之後
-  要重新複製一次。
+  舊版腳本**；目錄真的被清掉時才變成 hook 靜默不執行。兩種都不報錯。
 - **本 plugin 不提供 `hooks/hooks.json`，`plugin.json` 也不帶 `hooks` 欄位。** 兩者都會讓
   Claude Code 自動掛上事件——manifest 的 `hooks` 欄位可以指向任意路徑，而且與預設位置
-  是**合併**而不是取代。任一存在都會與個人層 `settings.json` 既有的註冊雙重觸發，同一個
-  Bash 指令跑兩次 guard。`scripts/hook-standards-policy.test.mjs` 兩條路徑都擋。
+  是**合併**而不是取代。任一存在都會與上面那份手寫註冊雙重觸發，同一個 Bash 指令跑
+  兩次 guard。`scripts/hook-standards-policy.test.mjs` 兩條路徑都擋。
 
 ## 現行守衛
 
