@@ -24,7 +24,8 @@ repo 內 `verification-logs/` 的一筆帶日期紀錄——這是每個 repo �
 未產出有效 review 時，CLI 才可執行一次 fallback。
 
 Codex 屬帳號層級設定：是否自動審查、何時觸發依各貢獻者個人 Codex 帳號，本 repo 不做
-覆寫；平台自動貼出的 finding 仍逐項核實。不要設定自動 Claude PR review pipeline。
+覆寫；不要主動 request 或等待其回應，平台自動貼出的 finding 仍逐項核實。不要設定自動
+Claude PR review pipeline。
 
 ## Merge gates
 

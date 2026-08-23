@@ -561,7 +561,7 @@ repo 設定必須提供以下前置條件：
   只明確 request App 一次；CLI 只依 canonical contract 作為 App 無法產生有效 review
   時的 fallback。
 - Codex：屬帳號層級設定，是否自動審查、何時觸發依各貢獻者個人 Codex 帳號，repo
-  不做覆寫；平台自動貼出的 finding 仍逐項核實。
+  不做覆寫；不要主動 request 或等待其回應，平台自動貼出的 finding 仍逐項核實。
 - 不設定自動 Claude PR review pipeline：不新增 `claude-code-review.yml`、`claude.yml`
   或 Drone `claude-review`，也不需要 `CLAUDE_CODE_OAUTH_TOKEN`。
 
