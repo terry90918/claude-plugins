@@ -273,12 +273,12 @@ containers.
 identify the target repository's `CLAUDE.md` as its canonical contract. When
 the target lacks the template's `PR review and merge contract` section, its
 skill MUST write and customize that section before configuring review services.
-Its skill, command, checklist, CI reference, and Copilot reference MUST direct
+Its skill, command, checklist, and CI reference MUST direct
 agents to invoke `superpowers:requesting-code-review`, use
 `superpowers:receiving-code-review` for findings, dispose every finding, resolve
 review threads, and satisfy CI and mergeability gates. It MUST configure
 CodeRabbit auto-review as disabled with one explicit App request, permit the
-CLI only as the prescribed fallback, allow one Copilot review, treat Codex as
+CLI only as the prescribed fallback, treat Codex as
 passive, and exclude automatic Claude PR-review pipelines. For a target using
 `engineering-delivery`, that Skill SHALL own and invoke the local review; external review
 SHALL be delegated to the `coderabbit:code-review` skill rather than a second
@@ -304,11 +304,11 @@ review mechanism.
 
 #### Scenario: A repository configures review services
 
-- **WHEN** an adopting repository configures CodeRabbit, Copilot, and Claude review support
-- **THEN** CodeRabbit auto-review is disabled with one explicit App request, Copilot has repository instructions and one review budget, and no automatic Claude PR-review pipeline is configured
+- **WHEN** an adopting repository configures CodeRabbit and Claude review support
+- **THEN** CodeRabbit auto-review is disabled with one explicit App request, and no automatic Claude PR-review pipeline is configured
 
 ##### Example: Repository review configuration
 
-- **GIVEN** a repository adds `.coderabbit.yaml` and `.github/copilot-instructions.md`
+- **GIVEN** a repository adds `.coderabbit.yaml`
 - **WHEN** it opens a pull request
-- **THEN** it explicitly requests CodeRabbit App once, uses one Copilot review budget, and has no Claude review workflow
+- **THEN** it explicitly requests CodeRabbit App once and has no Claude review workflow

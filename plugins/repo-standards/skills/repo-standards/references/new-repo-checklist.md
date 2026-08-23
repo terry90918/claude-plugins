@@ -76,13 +76,12 @@
 
 39. [ ] 將 `references/review-orchestration-template.md` 的 `PR review and merge contract` 寫入目標 repo `CLAUDE.md`，依 required checks 與部署方式客製化；建立 PR 後 invoke `superpowers:requesting-code-review`，finding 以 `superpowers:receiving-code-review` 逐項處置，accepted finding 修正驗證、rejected finding 記錄具體理由，並 resolve 全部 review thread
 40. [ ] 建立 `.coderabbit.yaml`，設定 `reviews.auto_review.enabled: false`；每個 PR 只明確 request CodeRabbit App 一次，僅在 App 無法產生有效 review 時依 canonical contract 使用 CLI fallback
-41. [ ] 建立 `.github/copilot-instructions.md`（**必須針對此 repo 客製化**，首行加入 `請使用繁體中文回覆所有問題與建議。`，並包含：project overview、git workflow、tool/module 分類、key design decisions、code conventions、code review 重點、auto-generated files 列表）；每個 PR 一次 Copilot review budget，Codex 為被動審查不主動觸發或等待
-42. [ ] 視需要在 `.github/instructions/` 建立路徑特定指示（加 `applyTo` frontmatter）；合併前確認 CI 全綠、`MERGEABLE`／`CLEAN`、Copilot 與 CodeRabbit 無未處理意見；不設定自動 Claude PR review pipeline
+41. [ ] Codex 為被動審查，不主動觸發或等待；合併前確認 CI 全綠、`MERGEABLE`／`CLEAN`、CodeRabbit 無未處理意見；不設定自動 Claude PR review pipeline
 
 ## 發版收尾（每次合併進 main 後必做）
 
 > 詳見 `references/ci-workflow-templates.md`「部署收尾」。
 
-43. [ ] **確認 CI 真的被觸發**：合併後查 `gh api repos/jurislm/<repo>/hooks/<id>/deliveries`（push 事件是否送達）+ Drone builds list 有對應 commit 的 push build（GitHub 偶爾漏發 push webhook）
-44. [ ] **確認 release-please 自動開的 release PR**（`chore(main): release X.Y.Z`）由同一 trusted main delivery 的 validator 以 GitHub protected PR squash merge 自動合併；release PR 不得保留 manual merge fallback，未通過時維持候選開啟並 fail closed
-45. [ ] release PR 自動合併後再次確認其 push build 觸發 + 精確版本的 `github-release` 有跑（tag 已建）；若 webhook 漏發，修復 delivery 後由新的 trusted main delivery 重試，不手動執行 write command
+42. [ ] **確認 CI 真的被觸發**：合併後查 `gh api repos/jurislm/<repo>/hooks/<id>/deliveries`（push 事件是否送達）+ Drone builds list 有對應 commit 的 push build（GitHub 偶爾漏發 push webhook）
+43. [ ] **確認 release-please 自動開的 release PR**（`chore(main): release X.Y.Z`）由同一 trusted main delivery 的 validator 以 GitHub protected PR squash merge 自動合併；release PR 不得保留 manual merge fallback，未通過時維持候選開啟並 fail closed
+44. [ ] release PR 自動合併後再次確認其 push build 觸發 + 精確版本的 `github-release` 有跑（tag 已建）；若 webhook 漏發，修復 delivery 後由新的 trusted main delivery 重試，不手動執行 write command
