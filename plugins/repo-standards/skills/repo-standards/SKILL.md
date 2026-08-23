@@ -492,8 +492,7 @@ trigger:
     - refs/pull/*/head     # PR（任意分支）
 ```
 
-- **不要**把 `refs/heads/develop` 放進 `trigger.ref` —— 否則 push develop + PR 會雙 build 競爭 runner（= GitHub Actions 時代 Issue #82 的 duplicate-runs 雷，Drone 用 ref glob 從設計上避免）。
-- 中間分支（develop / feature）只由 `refs/pull/*/head` 覆蓋；`push main` 作為繞過 PR（force-push / rebase / release-please commit）的 safety net。
+- Feature 分支只由 `refs/pull/*/head`（PR）觸發，`push main` 只覆蓋 main 自己（繞過 PR 的 force-push / rebase / release-please commit safety net）；兩者涵蓋範圍不重疊，避免同一次變更雙 build 競爭 runner（GitHub Actions 時代 Issue #82 的 duplicate-runs 教訓，Drone 用 ref glob 從設計上避免）。
 - **release-please commit 守衛**：deploy / lint / test 在純版號 commit 上跳過（見下方 CD 章節）。
 
 ### Audit 既存 Repo
@@ -531,14 +530,12 @@ done
 2. **守衛**：`echo "$DRONE_COMMIT_MESSAGE" | grep -qE '^chore(\(.+\))?: release [0-9]'`
    - **grep 全訊息（勿加 `head -1`）**：merge commit 合併 release PR 時 HEAD subject 為 `Merge pull request #N from …release-please…`、`chore(main): release X.Y.Z` 落在 body；加 `head -1` 只看 subject 會漏判 → release commit 誤觸發部署（2026-06-02 entire #383 實證）。全訊息 grep 同時涵蓋 merge（body 命中）與 squash（subject 命中）。`release [0-9]` 要求版號數字（排除 `chore: release notes …` 誤判）。
 3. **Drone repo-scope secret `COOLIFY_DEPLOY_TOKEN`**（`pull_request: false`）。
-4. **只關閉 PROD app 的 Coolify auto-deploy**（`is_auto_deploy_enabled`；先驗證 Drone→Coolify 接線可用再關，避免 prod 靜默停止部署）。
+4. **關閉每個部署 app 的 Coolify auto-deploy**（`is_auto_deploy_enabled`；先驗證 Drone→Coolify 接線可用再關，避免部署被靜默停止）。
 5. **加 `release-pr-auto-merge` pipeline**，讓 Release Please 在 trusted main delivery 後自動合併（Coolify web app 的部署 pipeline 仍須依 repo 類型設定；release PR 不得以人工合併作 fallback）。validator 必須遵守上方「Release PR 自動合併契約」。
 
-**⚠️ deploy-gating 只針對 PROD（push main），不要碰 DEV**：重複部署問題只發生在 prod——release PR / 純版號 `chore` commit 合併進 main 會重觸發 prod 部署；dev（push develop）無 release PR、無此問題。且本標準 `trigger.ref` 慣例**不含 develop** → Drone 根本不在 develop push 建置 → 無法接管 dev 部署。故 **dev app 一律維持 Coolify auto-deploy 不動**；只為 prod app 設 Drone deploy pipeline + 關 prod auto-deploy。
+**結果**：feature 合併進 main = 部署 1 次；trusted release PR 自動合併進 main = 部署 0 次（守衛跳過，僅 release-please 建 tag）。
 
-**結果**：feature 合併進 main = prod 部署 1 次；trusted release PR 自動合併進 main = prod 部署 0 次（守衛跳過，僅 release-please 建 tag）；dev 不受影響（仍由 Coolify auto-deploy on develop push）。
-
-**僅適用 Coolify-deployed repo**（web app）。**npm 套件 / MCP repo 不需要**——它們 publish 到 npm，只在 release commit 發布一次，無重複問題。Monorepo（多 app）須為每個 **prod** app 各設一個 deploy step（dev app 不設，維持 auto-deploy）。
+**僅適用 Coolify-deployed repo**（web app）。**npm 套件 / MCP repo 不需要**——它們 publish 到 npm，只在 release commit 發布一次，無重複問題。Monorepo（多 app）須為每個部署的 app 各設一個 deploy step。
 
 ⚠️ **合併任何 PR 進 main 後務必確認 push webhook 有觸發 build**（GitHub 偶爾漏發 → release / deploy 卡住）。若 delivery 沒建立，保留 release candidate，修復後由新的 trusted main delivery 重試，不得人工合併或手動執行 write command 繞過 validator。
 
@@ -586,6 +583,6 @@ repo 設定必須提供以下前置條件：
 - **Delivery subject**：資格閘門必須對 immutable `DRONE_COMMIT` 走 first-parent mainline；對 Conventional Commit target，GitHub merge setting 預設 readback 為 squash-only + pull-request title 作 squash title
 - **Monorepo**：所有 JurisLM monorepo 必須有 root `turbo.json`；已知 workspace 用 `--filter`，可信 Git base／head 才能用 `--affected`，否則完整 validation／deploy，cache inputs 必須涵蓋 task 讀取的全部檔案
 - **ESLint**：`eslint --max-warnings=0`，`.prettierignore` 加 `.claude/worktrees/`
-- **CI**：檢查 pipeline `trigger.ref` 只列 `refs/heads/main` + `refs/pull/*/head`（**勿**列 develop）；既有 repo 遷移時，舊平台上所有 CI、release 與版本檢查用途的 workflow 在同一次交付移除（依用途認定，不依檔名）
+- **CI**：檢查 pipeline `trigger.ref` 只列 `refs/heads/main` + `refs/pull/*/head`；既有 repo 遷移時，舊平台上所有 CI、release 與版本檢查用途的 workflow 在同一次交付移除（依用途認定，不依檔名）
 - **CD**（Coolify web app）：`.drone.yml` 加 `build`、`deploy`、`release-pr-auto-merge` 三個 pipeline + release-commit 守衛 + 關閉 Coolify auto-deploy + secret `COOLIFY_DEPLOY_TOKEN`（npm/MCP repo 不需要）
 - **Code Review**：將 packaged review contract 寫入目標 `CLAUDE.md` 後，依其 invoke Skill-driven review；CodeRabbit 一次明確 App request、Codex 被動；**無**自動 Claude review
