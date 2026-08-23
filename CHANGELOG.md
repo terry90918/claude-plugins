@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.41.5](https://github.com/jurislm/jurislm-tools/compare/v1.41.4...v1.41.5) (2026-08-23)
+
+
+### 🐛 Bug Fixes
+
+* **repo-standards:** 修正 Codex code review 的錯誤描述 ([46a5745](https://github.com/jurislm/jurislm-tools/commit/46a5745e7552b202cccfc9d39ec7c7d1a8fcd270))
+
 ## [1.41.4](https://github.com/jurislm/jurislm-tools/compare/v1.41.3...v1.41.4) (2026-08-23)
 
 
