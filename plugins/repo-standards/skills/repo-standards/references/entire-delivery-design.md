@@ -64,8 +64,10 @@ release PR。所有採用 Release Please 的 repo 都必須自動合併這張 ca
 
 每次採用此 standard，至少用目標 repo 的真實設定驗證：
 
-1. 有 deployment target 的一般變更 `C`：所有必要 gate 完成、只部署受影響 target、health
-   readback 回報 `C`。
+1. 有 deployment target 的一般變更 `C`：所有必要 gate 完成、health readback 回報 `C`。
+   **預設（未採用選擇性部署）**：受影響的 app 各自的 deploy step 都會跑，不分是否真的
+   受這次變更影響。**若額外採用選擇性部署**：只部署受影響 target。標準要求的是後者
+   出現時必須驗證它確實只動受影響的部分，不是要求每個 adoption 都必須實作它。
 2. 無 deployment target 的 npm／plugin candidate：同一 `C` 的完整 validation 與 `release(C)`
    成功後自動合併，不需人工審核或點擊 merge。
 3. Release candidate：加入非版本檔、錯誤版本、錯誤 base SHA、假 branch／body 或不可 merge
@@ -73,8 +75,9 @@ release PR。所有採用 Release Please 的 repo 都必須自動合併這張 ca
 4. Release commit：會跑 `github-release`，不做 full app rebuild；若系統使用選擇性部署，
    只將 deployed commit 等於 release 父節點的 target pin-only 並 readback，stale target
    維持原 base。
-5. Git 資訊不足或 target 受影響判定失敗：完整 gate 或 deploy 仍會執行，不會以「未受影響」
-   靜默成功。
+5. **僅適用已採用受影響 target 判定的 repo**：Git 資訊不足或判定失敗時，完整 gate 或
+   deploy 仍會執行，不會以「未受影響」靜默成功。未採用該判定的 repo 不適用本案例——
+   它的 deploy step 本來就對每次 push 都跑，沒有「判定失敗」這個狀態。
 6. 目標 repo 使用 webhook 或人工 migration 時：對應 detector／audit 在 delivery 後或 cron
    執行，且不把 write credential 暴露給 PR。
 
