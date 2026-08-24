@@ -40,7 +40,8 @@ The repository is primarily JSON, YAML, JavaScript validation scripts, and Markd
 
 The repository development toolchain supports Node.js
 `^22.22.2 || ^24.15.0 || >=26.0.0`. Confirm the active Node.js version satisfies
-this range before installing dependencies or running validation.
+this range before installing dependencies or running validation. `shellcheck` must
+also be on `PATH`; it is not an npm dependency, so `npm ci` does not provide it.
 
 ```bash
 npm ci
@@ -54,6 +55,7 @@ claude plugin validate .
 - Marketplace path, name, installation-ID, and immutable MCP dependency checks.
 - Release Please version synchronization.
 - Markdown lint for current entry documents and OpenSpec artifacts.
+- Shell script lint (`shellcheck`) for every `.sh` file in the repository.
 
 The Codex local environment is defined in `.codex/environments/environment.toml`; setup is intentionally a no-op.
 

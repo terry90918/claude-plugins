@@ -91,7 +91,7 @@ npm run validate
 claude plugin validate .
 ```
 
-`npm run validate` 會執行 Node 測試、marketplace integrity、Release Please 版本同步與 entry-document Markdown lint。Plugin 與 marketplace 的 release version 由 Release Please 管理，不得手動修改。
+`npm run validate` 會執行 Node 測試、marketplace integrity、Release Please 版本同步、entry-document Markdown lint 與 shell script lint（`shellcheck`）。Plugin 與 marketplace 的 release version 由 Release Please 管理，不得手動修改。
 
 ## Codex App Local Environment
 
