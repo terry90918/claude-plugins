@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.42.1](https://github.com/jurislm/jurislm-tools/compare/v1.42.0...v1.42.1) (2026-08-24)
+
+
+### 🐛 Bug Fixes
+
+* **hook-standards:** 收斂 worktree-hookspath-fix 的 core.hooksPath 改寫條件 ([5db6086](https://github.com/jurislm/jurislm-tools/commit/5db60869a06980fe2992be40b0f9655913e696ca))
+
 ## [1.42.0](https://github.com/jurislm/jurislm-tools/compare/v1.41.6...v1.42.0) (2026-08-23)
 
 
