@@ -534,11 +534,16 @@ done
 4. **關閉每個部署 app 的 Coolify auto-deploy**（`is_auto_deploy_enabled`；先驗證 Drone→Coolify 接線可用再關，避免部署被靜默停止）。
 5. **加 `release-pr-auto-merge` pipeline**，讓 Release Please 在 trusted main delivery 後自動合併（Coolify web app 的部署 pipeline 仍須依 repo 類型設定；release PR 不得以人工合併作 fallback）。validator 必須遵守上方「Release PR 自動合併契約」。
 
-**結果**：feature 合併進 main = 部署 1 次；trusted release PR 自動合併進 main = 部署 0 次
-（守衛跳過，僅 release-please 建 tag）。這是本規範給一般 repo 的簡化版——**沒有選擇性
-部署系統時，release commit 完全不寫入**。`entire` 自己另外跑一層 `--pin-only`，只對已
-caught up 到 release 父節點的 target 做已驗證的部署狀態對齊，是條件控制而非本規範預設；
-見 `references/entire-delivery-design.md` 的「Release commit deploy」一列。
+**結果**：單 app repo，feature 合併進 main = 部署 1 次。**Multi-app monorepo 且未額外
+導入受影響 target 判斷時**，每個 app 的 deploy step 對每次 push main 都各自部署，不分
+該次改動是否影響該 app——這是本規範預設，不虛構模板沒有的選擇性部署能力；需要依
+dependency graph 只部署受影響 target 時，那是進階條件控制，見
+`references/entire-delivery-design.md` 的「Production deploy」一列。
+
+trusted release PR 自動合併進 main = 部署 0 次（守衛跳過，僅 release-please 建 tag）。
+這同樣是簡化版——**沒有選擇性部署系統時，release commit 完全不寫入**。`entire` 自己
+另外跑一層 `--pin-only`，只對已 caught up 到 release 父節點的 target 做已驗證的部署
+狀態對齊，是條件控制而非本規範預設；見同檔「Release commit deploy」一列。
 
 **僅適用 Coolify-deployed repo**（web app）。**npm 套件 / MCP repo 不需要**——它們 publish 到 npm，只在 release commit 發布一次，無重複問題。Monorepo（多 app）須為每個部署的 app 各設一個 deploy step。
 
