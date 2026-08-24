@@ -4,6 +4,11 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+// fileURLToPath()，不用 URL.pathname——後者對路徑中的空白等字元保留
+// percent-encoding（如 %20），會讓 spawnSync 的 cwd 指向一個不存在的路徑。
+const REPO_ROOT = fileURLToPath(new URL("../", import.meta.url));
 
 // shellcheck 是否真的裝在這個環境，測試本身要能明確回報，不能靜默通過——
 // 這正是 jq／git 先前踩過的坑：工具缺席時檢查安靜地什麼都沒做。
@@ -19,7 +24,7 @@ function findShellScripts() {
       "-c",
       "find . \\( -path ./.git -o -path ./node_modules -o -path './.claude/worktrees' \\) -prune -o -name '*.sh' -print",
     ],
-    { encoding: "utf8", cwd: new URL("../", import.meta.url).pathname },
+    { encoding: "utf8", cwd: REPO_ROOT },
   );
   assert.equal(result.status, 0, "find 不得以非零退出碼結束");
   return result.stdout.trim().split("\n").filter(Boolean);
@@ -37,8 +42,7 @@ test("repo 內現有的每一支 .sh 都通過 shellcheck", { skip: !shellcheckA
   const scripts = findShellScripts();
   assert.ok(scripts.length > 0, "repo 內必須至少有一支 .sh 腳本可供檢查");
 
-  const repoRoot = new URL("../", import.meta.url).pathname;
-  const result = spawnSync("shellcheck", scripts, { cwd: repoRoot, encoding: "utf8" });
+  const result = spawnSync("shellcheck", scripts, { cwd: REPO_ROOT, encoding: "utf8" });
 
   assert.equal(
     result.status,
