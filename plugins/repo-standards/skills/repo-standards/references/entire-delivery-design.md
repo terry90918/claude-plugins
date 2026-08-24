@@ -84,7 +84,7 @@ release PR。所有採用 Release Please 的 repo 都必須自動合併這張 ca
 |---|---|
 | 「`node` 代表 Node.js runtime」 | `node` 是 Release Please 的 artifact strategy；runtime 由 `packageManager`、`engines` 與部署平台另行決定。 |
 | 「release commit 部署次數為零」 | release commit 不做 full deploy；若部署系統以 deployed commit 做 diff base，只對已 caught up 到 release 父節點的 target 做已驗證 pin-only state alignment。 |
-| 「Monorepo 每個 app 都在 YAML 寫一個 deploy step」 | 由 deploy module 的 target registry 定義 app、workspace、deployment identity 與 health endpoint；pipeline 呼叫該 module。 |
+| 「`entire` 用 target registry 是唯一正確做法，所有 monorepo 都該照抄」 | `entire` 自己在管理 6 個 prod app 時，把 app、workspace、deployment identity 與 health endpoint 收斂進 `coolify-deploy.ts` 的 target registry，pipeline 只呼叫該 module——這是它在那個規模下的條件控制。**本規範給一般 repo 的預設仍是 `SKILL.md` 明定的「每個部署的 app 各設一個 deploy step」**，更簡單、多數規模已足夠；只有 app 數量或部署邏輯複雜到單一 YAML 難以維護時，才考慮收斂成 target registry。 |
 | 「`entire` 有幾條 pipeline，目標 repo 也必須有幾條」 | 先按 failure domain、service boundary、deployment topology 決定 gate；只保留滿足相同風險的控制。 |
 | 「docs-only 可以跳過所有檢查」 | 先跑輸入域就是 docs 的 governance／integrity guard；只有其餘不受影響 gate 才可 shortcut。 |
 | 「npm／純 plugin 沒有 deploy，所以 release PR 可人工審核或點擊合併」 | 所有 Release Please candidate 都由 trusted `main` delivery 的 validator 自動合併；無 deployment target 只把 prerequisite 改為完整 validation。 |
