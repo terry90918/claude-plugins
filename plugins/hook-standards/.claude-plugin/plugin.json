@@ -1,7 +1,7 @@
 {
   "name": "hook-standards",
   "description": "Claude Code hook 規格與現行守衛 — 入選判準、deny/ask 選擇、匹配與失敗紀律、輸出格式，附三支守衛的逐支規格與安裝步驟",
-  "version": "1.42.1",
+  "version": "1.43.0",
   "author": {
     "name": "Terry Chen"
   },
