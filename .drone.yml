@@ -18,13 +18,16 @@ steps:
   - name: validate
     image: node:22.22.2-bookworm-slim
     commands:
+      # commit-type guardrail 必須先於任何慢速的依賴安裝工作（npm ci、apt-get 皆是），
+      # 否則一個壞掉的 PR title 本該讓 CI 快速失敗，卻要先付出安裝成本才會被拒絕——
+      # scripts/validate-drone-config.mjs 強制這個順序，見該檔案的三段鏈式不變量。
+      - node scripts/validate-pr-title.mjs
+      - node scripts/validate-squash-subject.mjs
       # git／jq／shellcheck／python3 是三支 guard hook 與其測試的隱性依賴，缺席時
       # fail-open 且無聲（JUR-147／JUR-150 都撞過；python3 是本次補齊 git 後才在
       # worktree-hookspath-fix.sh 的 emit() fallback 暴露出來）。一次裝齊，不分散
       # 成多個 pipeline step。
       - apt-get update -qq && apt-get install -y --no-install-recommends git jq shellcheck python3 -qq
-      - node scripts/validate-pr-title.mjs
-      - node scripts/validate-squash-subject.mjs
       - npm ci
       - npm run validate
 

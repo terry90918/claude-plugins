@@ -9,10 +9,16 @@ import test from "node:test";
 // 這正是 jq／git 先前踩過的坑：工具缺席時檢查安靜地什麼都沒做。
 const shellcheckAvailable = spawnSync("shellcheck", ["--version"]).status === 0;
 
+// 掃描範圍與 package.json 的 lint:shell 一致：整個 repo，只排除 .git、
+// node_modules 與未版控的 worktree 暫存目錄——不限定 plugins／scripts，
+// 否則 .github/ 或 repo 根目錄新增的 .sh 會被文件承諾涵蓋卻實際漏檢。
 function findShellScripts() {
   const result = spawnSync(
     "bash",
-    ["-c", "find plugins scripts -name '*.sh' -not -path '*/node_modules/*'"],
+    [
+      "-c",
+      "find . \\( -path ./.git -o -path ./node_modules -o -path './.claude/worktrees' \\) -prune -o -name '*.sh' -print",
+    ],
     { encoding: "utf8", cwd: new URL("../", import.meta.url).pathname },
   );
   assert.equal(result.status, 0, "find 不得以非零退出碼結束");
