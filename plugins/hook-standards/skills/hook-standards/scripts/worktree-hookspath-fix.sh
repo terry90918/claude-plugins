@@ -45,6 +45,7 @@ command -v git >/dev/null 2>&1 || emit ""
 git rev-parse --git-dir >/dev/null 2>&1 || emit ""   # 非 git 目錄 → 無事可做
 
 FIXED=""
+NOTED=""
 
 # $1 = hooksPath 值, $2 = 該 worktree 頂層。回傳 0 代表「絕對且指向他處」= 毒。
 is_foreign_abs() {
@@ -62,32 +63,61 @@ is_foreign_abs() {
 while IFS= read -r wt; do
     [ -d "$wt" ] || continue
 
-    # (a) worktree 層級（config.worktree）——harness 下毒的位置，且優先序高於 shared
-    val=$(git -C "$wt" config --worktree --get core.hooksPath 2>/dev/null) || val=""
-    if [ -n "$val" ] && is_foreign_abs "$val" "$wt"; then
-        if git -C "$wt" config --worktree --unset core.hooksPath 2>/dev/null; then
-            FIXED="${FIXED}
+    # (a) worktree 層級（config.worktree）——harness 下毒的位置，且優先序高於 shared。
+    #
+    # ⚠️ 只在 extensions.worktreeConfig 已啟用時才碰。git-config 的定義是：該 extension
+    # 未啟用時 `--worktree` **等同 `--local`**，於是這裡的 --unset 動到的會是 repo 的
+    # 共用設定，把使用者刻意設定的 hooks 目錄無聲刪掉——一個設了
+    # core.hooksPath=/opt/company-hooks 的普通 repo，被開過一次 session 就失去
+    # commit／push gate。已實測重現，見 scripts/worktree-hookspath-fix.test.mjs。
+    #
+    # 這個閘門不會失去任何功能：extensions.worktreeConfig 未啟用時本來就不存在
+    # config.worktree，也就沒有 worktree 層級的值該被 unset。
+    # `--local` 是必要的：git 只認 **repo 層級** 的這個 extension，但不加 scope 的
+    # `--get` 會一路讀到 global 與 system。使用者的 ~/.gitconfig 裡有一行
+    # extensions.worktreeConfig = true 就足以騙過這個閘門——git 沒有啟用 worktree
+    # config，`--worktree` 仍等同 `--local`，破壞性 unset 原封不動回來。已實測重現。
+    #
+    # `--type=bool` 也是必要的：git 認 true／TRUE／1／yes／on，字面比對 "true" 會讓
+    # 另外四種寫法的 repo 失去修復。
+    if [ "$(git -C "$wt" config --local --type=bool --get extensions.worktreeConfig 2>/dev/null)" = "true" ]; then
+        val=$(git -C "$wt" config --worktree --get core.hooksPath 2>/dev/null) || val=""
+        if [ -n "$val" ] && is_foreign_abs "$val" "$wt"; then
+            if git -C "$wt" config --worktree --unset core.hooksPath 2>/dev/null; then
+                FIXED="${FIXED}
 - \`$(basename "$wt")\`：移除 worktree 層級的絕對 hooksPath（\`$val\`）→ 改由 shared config 接手"
+            fi
         fi
     fi
 
-    # (b) shared 層級（.git/config）——改寫成相對路徑，讓每個 worktree 跑自己分支的 hook
-    val=$(git -C "$wt" config --local --get core.hooksPath 2>/dev/null) || val=""
-    if [ -n "$val" ] && is_foreign_abs "$val" "$wt"; then
-        base=$(basename "$val")
-        # 只有該目錄名確實存在於 worktree 頂層時才改寫；否則寧可不動，也不要亂猜
-        if [ -d "$wt/$base" ] && git -C "$wt" config --local core.hooksPath "$base" 2>/dev/null; then
-            FIXED="${FIXED}
-- shared \`.git/config\`：絕對 hooksPath（\`$val\`）→ 相對 \`$base\`（git 會解析到各 worktree 自己的頂層）"
+    # (b) shared 層級（.git/config）——**只回報，不改寫**。
+    #
+    # 舊版會把絕對值改寫成相對路徑，條件只有「同名目錄存在於 worktree 頂層」，
+    # 完全不檢查那個目錄裡有什麼。checkout 出來的分支若帶一個同名目錄，
+    # core.hooksPath 就被改指到分支內容，之後每一次 commit／push 都會執行它。
+    #
+    # 而且 harness 的病灶寫在 config.worktree，不在 shared config——(b) 從來就不是在
+    # 修那個病。改寫的風險換不到對應的價值，所以只把觀察講出來，讓人自己決定。
+    # `.git/config` 是所有 worktree 共用的同一個檔案，所以這裡只回報一次。逐個
+    # worktree 各報一次會讓同一件事重複出現 N 遍，而它永遠不會被解決——那是每個
+    # session 都要付的 context 成本，也會稀釋同一則訊息裡「已修正」那一段的份量。
+    if [ -z "$NOTED" ]; then
+        val=$(git -C "$wt" config --local --get core.hooksPath 2>/dev/null) || val=""
+        if [ -n "$val" ] && is_foreign_abs "$val" "$wt"; then
+            NOTED="${NOTED}
+- shared \`.git/config\`：\`core.hooksPath\` 指向工作樹之外（\`$val\`）"
         fi
     fi
 done <<EOF
 $(git worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p')
 EOF
 
-[ -z "$FIXED" ] && emit ""
+[ -z "$FIXED" ] && [ -z "$NOTED" ] && emit ""
 
-emit "## ⚠️ git hook 路徑已自癒（SessionStart hook 自動偵測，非使用者指令）
+REPORT="## ⚠️ git hook 路徑（SessionStart hook 自動偵測，非使用者指令）"
+
+if [ -n "$FIXED" ]; then
+    REPORT="${REPORT}
 
 Claude Code 建立 worktree 時會寫入指向**主 repo** 的絕對 \`core.hooksPath\`（anthropics/claude-code#60620），
 使該 worktree 執行主目錄 checkout 的 hook 檔、而非自己分支的版本——且**壞掉時完全無聲**。
@@ -96,3 +126,17 @@ Claude Code 建立 worktree 時會寫入指向**主 repo** 的絕對 \`core.hook
 ${FIXED}
 
 代表在此之前，受影響 worktree 的 husky gate（pre-commit / commit-msg / pre-push）可能並未按預期版本執行。"
+fi
+
+if [ -n "$NOTED" ]; then
+    REPORT="${REPORT}
+
+僅回報，**未改動**：
+${NOTED}
+
+這可能是刻意設定的共用 hooks 目錄，也可能是漂移。本 hook 不自動改寫 shared config——
+改寫的判準只能看路徑形狀，分不出這兩者，而改錯的代價是把 hook 指到未經檢查的內容。
+要處理請自己確認來源後手動調整。"
+fi
+
+emit "$REPORT"

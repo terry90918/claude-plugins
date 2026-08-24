@@ -136,19 +136,19 @@ timeout 10 秒。比對前先把指令轉小寫。
 worktree（含主目錄），處理兩個層級：
 
 1. worktree 層級（`config.worktree`）：值是絕對路徑且指向該 worktree 之外時，
-   `--unset` 掉，讓 shared config 的相對值接手。
-2. shared 層級（`.git/config`）：同樣條件下改寫為相對路徑，讓每個 worktree 解析到
-   自己的頂層。
+   `--unset` 掉，讓 shared config 的值接手。**前提是 `extensions.worktreeConfig`
+   已啟用**——未啟用時 `--worktree` 等同 `--local`，動它會刪掉 repo 的共用設定。
+2. shared 層級（`.git/config`）：同樣條件下**只回報，不改寫**。
 
 病灶：harness 建立 worktree 時，會把從主 repo 推導的絕對路徑寫進該 worktree 的
 `config.worktree`，而 `extensions.worktreeConfig = true` 讓 worktree 層級的值蓋過
 shared config。結果該 worktree 執行的是主目錄當前 checkout 的那份 hook 檔。
 對應 `anthropics/claude-code#60620`。
 
-**決定** — 不適用，它不回 `permissionDecision`。修好之後透過 `additionalContext`
-回報修了什麼；沒事發生時注入空字串。輸出的 `hookEventName` 寫死是 `SessionStart`，
-掛在 `PostToolUse` 那條路徑上時也一樣——目前沒有觀察到副作用，但它是寫死的，不是
-依事件動態決定。
+**決定** — 不適用，它不回 `permissionDecision`。透過 `additionalContext` 回報，分兩段：
+**已修正**（worktree 層級的 unset）與**僅回報未改動**（shared 層級的觀察）。兩段都沒有
+內容時注入空字串。輸出的 `hookEventName` 寫死是 `SessionStart`，掛在 `PostToolUse`
+那條路徑上時也一樣——目前沒有觀察到副作用，但它是寫死的，不是依事件動態決定。
 
 **不攔什麼**
 
@@ -157,18 +157,34 @@ shared config。結果該 worktree 執行的是主目錄當前 checkout 的那�
 - 非 git 目錄、`git` 不存在、或設了 `CLAUDE_HOOKSPATH_FIX_DISABLE=1` 時直接跳過。
 - **它分辨不出「harness 下的毒」與「刻意設定的外部共用 hooks 目錄」。** 判準純粹是
   形狀——絕對路徑且指向該 worktree 之外。組織共用一份 `core.hooksPath` 正是同一個
-  形狀，會被當成毒處理。
-- **shared 層級的改寫是有條件的重新指向，不只是「不猜」。** 條件是同名目錄存在於
-  worktree 頂層，而它**不檢查那個目錄裡有什麼**。若 shared config 指向
-  `/opt/company-hooks`，而當前 checkout 的分支裡剛好有一個 `company-hooks/` 目錄，
-  這支 hook 會把 `core.hooksPath` 改指到那個分支內的目錄——之後每一次 commit／push
-  都會執行分支裡的腳本。審查他人分支時這條路徑值得留意。目前是程式碼推導出的結論，
-  尚未實測。
+  形狀。這一點沒有修掉，但後果被限縮了：現在 shared 層級只回報不改寫，而 worktree
+  層級只在 `extensions.worktreeConfig` 已啟用時才動——那正是 harness 病灶的所在，
+  刻意設定的共用目錄不會寫在那裡。
+- **路徑比對不做正規化。** symlink 會讓「指向內部」看起來像「指向外部」，例如 macOS
+  的 `/var` 是 `/private/var` 的 symlink。shared 層級只會多一則回報；但 worktree
+  層級**可能誤 unset** 一個刻意設定、指向自己內部的絕對值。影響有限（只丟掉一個
+  worktree 範圍的 override，shared 的值會接手），但不是「不會誤改」。
 
 **對應規則** — 沒有對應的 `CLAUDE.md` 條目，它修的是工具鏈缺陷不是人的行為。
 與「擋單次 `-c core.hooksPath=` 繞過」的守衛分工明確：那個擋單次指令，這個修被寫進
 config 的持久漂移，兩者不重疊。
 
-**踩坑記錄** — 這支的存在本身就是踩坑結論：壞掉時完全無聲，git 找不到 `hooksPath`
-指向的目錄就直接不跑 hook，不報錯也不警告。2026-07-14 實證前，受影響 worktree 的
-pre-commit／commit-msg／pre-push gate 可能已經靜默失效一段時間而無人察覺。
+**踩坑記錄**
+
+1. 這支的存在本身就是踩坑結論：壞掉時完全無聲，git 找不到 `hooksPath` 指向的目錄就
+   直接不跑 hook，不報錯也不警告。2026-07-14 實證前，受影響 worktree 的
+   pre-commit／commit-msg／pre-push gate 可能已經靜默失效一段時間而無人察覺。
+2. **修復型 hook 自己變成了破壞源**（2026-08-24 修正）。`git config --worktree` 在
+   `extensions.worktreeConfig` 未啟用時等同 `--local`，於是 `--unset` 動到的是 repo 的
+   共用設定。一個設了 `core.hooksPath=/opt/company-hooks` 的普通 repo，被開過一次
+   session 就失去 commit／push gate——不需要 worktree、不需要攻擊者，而且完全無聲。
+   這與本支腳本當初要防止的失效模式一模一樣。修法是在 unset 前先確認該 extension
+   已啟用；未啟用時本來就不存在 `config.worktree`，加上閘門不失去任何功能。
+3. **shared 層級的改寫已移除**（同一輪）。舊版的條件只有「同名目錄存在於 worktree
+   頂層」，不檢查目錄內容——checkout 出來的分支帶一個同名目錄就能讓 `core.hooksPath`
+   改指到分支內容。而 harness 的病灶寫在 `config.worktree`，不在 shared config，
+   那段改寫從來就不是在修那個病。風險換不到價值，改為只回報。
+
+行為由 `jurislm-tools` 的 `scripts/worktree-hookspath-fix.test.mjs` 釘住（該測試在
+repo 內，不隨 plugin 安裝），含第 2、3 點的回歸測試。**CI 的映像沒有 git，那些回歸
+測試在 CI 會被跳過**，目前只在開發機上實際執行——CI 映像的工具鏈另議。
