@@ -43,6 +43,10 @@ release PR。所有採用 Release Please 的 repo 都必須自動合併這張 ca
 
 ## 可移植規則與條件邊界
 
+這張表是推導理由，不是現行規則本身。與 `SKILL.md`（`Release 設定`、`部署（CD）`）出現的
+具體規則若有分歧，以 `SKILL.md` 為準——這裡的作用是解釋那些規則從 `entire` 的哪個機制
+提煉而來、邊界畫在哪，而不是另一份可獨立修改的規範。
+
 | 設計面 | `entire` 的機制 | 必須提煉成的規則 | 何時是條件控制 |
 |---|---|---|---|
 | 版本契約 | 根目錄 manifest、`package.json`、`CHANGELOG.md` 構成單一版本；`release-type: node` | `release-type` 依版本 artifact 選擇，不依 runtime。每個 repo 必須明定可變更檔案集合與版本／changelog 的語意驗證。 | Plugin metadata 才用 `simple` 與 `extra-files`；allowlist 依目標 artifact 改寫。 |
