@@ -83,7 +83,7 @@ Higgsfield 使用 remote MCP OAuth，不需本機 API key。
 
 本 repo 採 GitHub Flow：feature branch 直接對 `main` 開 PR，不維護 `develop` 分支，並禁止直接 push `main`。開始修改前請從最新 `origin/main` 建立獨立 worktree。
 
-開發工具鏈支援的 Node.js 版本為 `^22.22.2 || ^24.15.0 || >=26.0.0`；執行安裝或驗證前請先確認本機版本符合此範圍。
+開發工具鏈支援的 Node.js 版本為 `^22.22.2 || ^24.15.0 || >=26.0.0`；執行安裝或驗證前請先確認本機版本符合此範圍。`shellcheck` 也須在本機 `PATH` 上——它不是 npm 依賴，`npm ci` 不會安裝它。
 
 ```bash
 npm ci
@@ -91,7 +91,7 @@ npm run validate
 claude plugin validate .
 ```
 
-`npm run validate` 會執行 Node 測試、marketplace integrity、Release Please 版本同步與 entry-document Markdown lint。Plugin 與 marketplace 的 release version 由 Release Please 管理，不得手動修改。
+`npm run validate` 會執行 Node 測試、marketplace integrity、Release Please 版本同步、entry-document Markdown lint 與 shell script lint（`shellcheck`）。Plugin 與 marketplace 的 release version 由 Release Please 管理，不得手動修改。
 
 ## Codex App Local Environment
 
