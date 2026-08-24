@@ -18,6 +18,11 @@ steps:
   - name: validate
     image: node:22.22.2-bookworm-slim
     commands:
+      # git／jq／shellcheck／python3 是三支 guard hook 與其測試的隱性依賴，缺席時
+      # fail-open 且無聲（JUR-147／JUR-150 都撞過；python3 是本次補齊 git 後才在
+      # worktree-hookspath-fix.sh 的 emit() fallback 暴露出來）。一次裝齊，不分散
+      # 成多個 pipeline step。
+      - apt-get update -qq && apt-get install -y --no-install-recommends git jq shellcheck python3 -qq
       - node scripts/validate-pr-title.mjs
       - node scripts/validate-squash-subject.mjs
       - npm ci
