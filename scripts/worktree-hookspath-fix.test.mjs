@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -67,10 +67,14 @@ function withRepo(options, assertions) {
 test("git 不可用時安靜退出，不阻斷 session", { skip: gitAvailable }, () => {
   // 這裡不偽造環境。會跑到這條的環境就是真的沒有 git（CI 的 node:*-slim），
   // 用真實環境驗證才有意義——把 PATH 換掉只會連 bash 都找不到，那測的是別的東西。
-  const result = runHook(tmpdir());
+  // 斷言解析後的結構，不比對序列化字串。腳本有兩條輸出路徑（python3 與 printf
+  // fallback），兩者的空白排版不同——比對字串等於順便斷言了 python3 在不在，
+  // 那是與本測試無關的事實。
+  const { hookSpecificOutput } = JSON.parse(runHook(tmpdir()).stdout);
+  assert.equal(hookSpecificOutput.hookEventName, "SessionStart");
   assert.equal(
-    result.stdout.trim(),
-    '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":""}}',
+    hookSpecificOutput.additionalContext,
+    "",
     "git 不在時必須注入空 context，不得輸出雜訊",
   );
 });
@@ -155,6 +159,61 @@ test(
 );
 
 test(
+  "extensions.worktreeConfig 只設在 global 時，不得移除 --local 的值",
+  { skip: !gitAvailable },
+  () => {
+    // git 只認 repo 層級的這個 extension。設在 global 不會讓 worktree config 生效，
+    // 但「讀得到」——閘門若不限定 scope 就會被騙過，破壞性 unset 原封不動回來。
+    const { dir, repo } = makeRepo({ hooksPath: "/opt/company-hooks", scope: "local" });
+    try {
+      const globalConfig = path.join(dir, "gitconfig");
+      writeFileSync(globalConfig, "[extensions]\n\tworktreeConfig = true\n");
+      const result = spawnSync("bash", [HOOK], {
+        cwd: repo,
+        input: "{}",
+        encoding: "utf8",
+        env: { ...process.env, GIT_CONFIG_GLOBAL: globalConfig },
+      });
+      assert.equal(result.status, 0);
+      assert.equal(
+        spawnSync("git", ["-C", repo, "config", "--local", "--get", "core.hooksPath"], {
+          encoding: "utf8",
+          env: { ...process.env, GIT_CONFIG_GLOBAL: globalConfig },
+        }).stdout.trim(),
+        "/opt/company-hooks",
+        "global 層級的 extension 不得讓閘門放行",
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  "shared 層級的外部路徑只回報一次，不論有幾個 worktree",
+  { skip: !gitAvailable },
+  () => {
+    const { dir, repo } = makeRepo({
+      worktreeConfig: true,
+      hooksPath: "/opt/company-hooks",
+      scope: "local",
+    });
+    try {
+      git(repo, "worktree", "add", "-q", "--detach", path.join(dir, "wt1"));
+      const context = JSON.parse(runHook(repo).stdout).hookSpecificOutput.additionalContext;
+      assert.match(context, /僅回報/, "必須把未改動的觀察講出來");
+      assert.equal(
+        context.split("/opt/company-hooks").length - 1,
+        1,
+        "同一份 shared config 不得因為有多個 worktree 而重複回報",
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
   "worktreeConfig 啟用時，config.worktree 裡的外部絕對路徑仍會被移除",
   { skip: !gitAvailable },
   () => {
@@ -163,9 +222,12 @@ test(
       { worktreeConfig: true, hooksPath: "/some/other/repo/.husky", scope: "worktree" },
       (repo) => {
         runHook(repo);
+        // 用退出碼判斷「這個值不存在」，不用空字串——git 讀不到設定時回非零，
+        // 而空字串也可能來自打錯的子指令，那會讓這條斷言變成空轉。
         assert.equal(
-          git(repo, "config", "--worktree", "--get", "core.hooksPath"),
-          "",
+          spawnSync("git", ["-C", repo, "config", "--worktree", "--get", "core.hooksPath"])
+            .status,
+          1,
           "worktree 層級的外部絕對路徑必須被移除",
         );
       },

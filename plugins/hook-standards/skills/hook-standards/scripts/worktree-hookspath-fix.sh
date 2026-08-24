@@ -73,7 +73,14 @@ while IFS= read -r wt; do
     #
     # 這個閘門不會失去任何功能：extensions.worktreeConfig 未啟用時本來就不存在
     # config.worktree，也就沒有 worktree 層級的值該被 unset。
-    if [ "$(git -C "$wt" config --get extensions.worktreeConfig 2>/dev/null)" = "true" ]; then
+    # `--local` 是必要的：git 只認 **repo 層級** 的這個 extension，但不加 scope 的
+    # `--get` 會一路讀到 global 與 system。使用者的 ~/.gitconfig 裡有一行
+    # extensions.worktreeConfig = true 就足以騙過這個閘門——git 沒有啟用 worktree
+    # config，`--worktree` 仍等同 `--local`，破壞性 unset 原封不動回來。已實測重現。
+    #
+    # `--type=bool` 也是必要的：git 認 true／TRUE／1／yes／on，字面比對 "true" 會讓
+    # 另外四種寫法的 repo 失去修復。
+    if [ "$(git -C "$wt" config --local --type=bool --get extensions.worktreeConfig 2>/dev/null)" = "true" ]; then
         val=$(git -C "$wt" config --worktree --get core.hooksPath 2>/dev/null) || val=""
         if [ -n "$val" ] && is_foreign_abs "$val" "$wt"; then
             if git -C "$wt" config --worktree --unset core.hooksPath 2>/dev/null; then
@@ -91,10 +98,15 @@ while IFS= read -r wt; do
     #
     # 而且 harness 的病灶寫在 config.worktree，不在 shared config——(b) 從來就不是在
     # 修那個病。改寫的風險換不到對應的價值，所以只把觀察講出來，讓人自己決定。
-    val=$(git -C "$wt" config --local --get core.hooksPath 2>/dev/null) || val=""
-    if [ -n "$val" ] && is_foreign_abs "$val" "$wt"; then
-        NOTED="${NOTED}
-- \`$(basename "$wt")\` 的 shared \`.git/config\`：\`core.hooksPath\` 指向工作樹之外（\`$val\`）"
+    # `.git/config` 是所有 worktree 共用的同一個檔案，所以這裡只回報一次。逐個
+    # worktree 各報一次會讓同一件事重複出現 N 遍，而它永遠不會被解決——那是每個
+    # session 都要付的 context 成本，也會稀釋同一則訊息裡「已修正」那一段的份量。
+    if [ -z "$NOTED" ]; then
+        val=$(git -C "$wt" config --local --get core.hooksPath 2>/dev/null) || val=""
+        if [ -n "$val" ] && is_foreign_abs "$val" "$wt"; then
+            NOTED="${NOTED}
+- shared \`.git/config\`：\`core.hooksPath\` 指向工作樹之外（\`$val\`）"
+        fi
     fi
 done <<EOF
 $(git worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p')

@@ -161,7 +161,9 @@ shared config。結果該 worktree 執行的是主目錄當前 checkout 的那�
   層級只在 `extensions.worktreeConfig` 已啟用時才動——那正是 harness 病灶的所在，
   刻意設定的共用目錄不會寫在那裡。
 - **路徑比對不做正規化。** symlink 會讓「指向內部」看起來像「指向外部」，例如 macOS
-  的 `/var` 是 `/private/var` 的 symlink。目前只會導致多一則回報，不會誤改。
+  的 `/var` 是 `/private/var` 的 symlink。shared 層級只會多一則回報；但 worktree
+  層級**可能誤 unset** 一個刻意設定、指向自己內部的絕對值。影響有限（只丟掉一個
+  worktree 範圍的 override，shared 的值會接手），但不是「不會誤改」。
 
 **對應規則** — 沒有對應的 `CLAUDE.md` 條目，它修的是工具鏈缺陷不是人的行為。
 與「擋單次 `-c core.hooksPath=` 繞過」的守衛分工明確：那個擋單次指令，這個修被寫進
@@ -183,4 +185,6 @@ config 的持久漂移，兩者不重疊。
    改指到分支內容。而 harness 的病灶寫在 `config.worktree`，不在 shared config，
    那段改寫從來就不是在修那個病。風險換不到價值，改為只回報。
 
-行為由 `scripts/worktree-hookspath-fix.test.mjs` 釘住，含第 2、3 點的回歸測試。
+行為由 `jurislm-tools` 的 `scripts/worktree-hookspath-fix.test.mjs` 釘住（該測試在
+repo 內，不隨 plugin 安裝），含第 2、3 點的回歸測試。**CI 的映像沒有 git，那些回歸
+測試在 CI 會被跳過**，目前只在開發機上實際執行——CI 映像的工具鏈另議。
