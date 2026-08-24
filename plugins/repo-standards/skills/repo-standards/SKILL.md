@@ -47,6 +47,7 @@ Plugin → 模板 D。
 - `jurislm/entire` 是目前唯一已透過可觀測驗收證明的 release delivery 與 monorepo CI/CD reference。
 - 其他 repo 都是 adoption target；完成該 repo 自己的 CI、release、部署／發布與 readback 驗收前，不得標示為 verified reference，也不得把它的拓撲當成組織標準。
 - `entire` 的 reference 範圍是可驗證的不變量（trusted main delivery、Turborepo 與安全 release contract），不是要複製它的 Runtime、Coolify 部署或 app 拓撲。
+- 從 `entire` 提煉規則時，怎麼取證、哪些機制是可移植規則、哪些只是條件控制，見 `references/entire-delivery-design.md`。
 
 ---
 
