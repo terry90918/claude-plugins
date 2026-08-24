@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.43.0](https://github.com/jurislm/jurislm-tools/compare/v1.42.1...v1.43.0) (2026-08-24)
+
+
+### 🚀 New Features
+
+* **ci:** 把 shellcheck 納入 npm run validate，補齊 CI 缺的隱性依賴 ([2db7428](https://github.com/jurislm/jurislm-tools/commit/2db74286bdffb1381d568bdef6ae7de2ea5eb081))
+
+
+### 📚 Documentation
+
+* **repo-standards:** 補回 entire-delivery-design 提煉方法論 ([072781a](https://github.com/jurislm/jurislm-tools/commit/072781ad9cb546d87899b321f5fded607f151e8f))
+
 ## [1.42.1](https://github.com/jurislm/jurislm-tools/compare/v1.42.0...v1.42.1) (2026-08-24)
 
 
