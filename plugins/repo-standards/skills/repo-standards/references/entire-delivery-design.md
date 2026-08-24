@@ -54,7 +54,7 @@ release PR。所有採用 Release Please 的 repo 都必須自動合併這張 ca
 | 寫入權限 | Release token 只在 trusted `main` push 的 release／auto-merge 使用 | 任何可寫 GitHub 或部署的 token 不得進 PR build；讀取型觀測使用獨立 readonly token。 | 沒有 release 或 auto-merge 時，不建立不需要的 write token。 |
 | Runner control | `entire` 不把其 runner 未實際強制的 YAML resource limit 當作保護 | 只有經目前 runner 驗證會生效的 resource／concurrency control 才能寫成規範；否則明確省略，避免製造假保護。 | runner 實作、queue isolation 或 workload 需要時才加入，並以實際執行結果驗證。 |
 | CI gate | `run-gate.sh` 將 full／affected、docs-only、外部 scripts 與各測試環境集中路由 | Gate 依失效域與必要環境拆分，不依目錄名稱或固定 pipeline 數量。快速路徑沒有足夠 base／head 證據時必須回退 full gate；輸入域落在 docs 的守衛不能被 docs-only shortcut 略過。 | DB service、integration gate、workspace filter、build target 只在目標 repo 的依賴邊界需要時加入。 |
-| Release 判定 | 一支 event-aware `is-release-commit.sh` 同時辨識 push merge／squash 與官方 release PR | release 判定必須是單一、可測試的 predicate；所有 gate 與 deploy 呼叫它，而 release pipeline 本身不呼叫它。 | 精確 branch、body marker 與提交格式依 provider／release tool 設定調整，但只比 branch 名稱不足。 |
+| Release 判定 | 一支 event-aware `is-release-commit.sh` 同時辨識 push merge／squash 與官方 release PR | release 判定必須是單一、可測試的 predicate；所有 gate 與 deploy 呼叫它決定要不要跳過。`github-release`／`release-pr` 這兩個 release cut 步驟本身不呼叫它——它們的職責就是每次觸發都跑，有沒有東西可 cut 交給 release 工具自己判斷。**release-only 的 side effect（例如 npm publish）例外**：它必須呼叫同一個 predicate，只在剛 cut 出新版時才發布，這仍是同一個「單一 predicate」的用法，不是另開一套判斷。 | 精確 branch、body marker 與提交格式依 provider／release tool 設定調整，但只比 branch 名稱不足。 |
 | Production deploy | deploy 等待全部必要 gate；target registry 持有 workspace、UUID、health URL；依 dependency graph 選擇 target | `.drone.yml` 只負責觸發，deploy module 才是 target 的單一真實來源。無法判定是否受影響時 fail open 為部署，不可靜默漏部署；每次部署必須等終態並以 health endpoint 讀回 commit。 | 沒有多 app、Coolify 或 commit-aware health endpoint 時，以等價的 deployment／runtime readback 取代。 |
 | Release commit deploy | release commit 不重建 app；`--pin-only` 只推進目前 deployed commit 等於 release commit 父節點的 target，並 PATCH 後 GET 驗證 | 「跳過 full deploy」不等於「不更新部署狀態」，但也不能認領未部署變更。只可推進已 caught up 到父節點的 target；stale 或先前部署失敗的 target 保持原 base，避免下一次 affected diff 漏掉變更。 | 沒有以已部署 commit 做選擇性部署的系統，記錄為不適用，不虛構 pin-only。 |
 | Release PR auto-merge | 串行化；驗證 repo、branch、author、官方 marker、closed file set、內容、base／head SHA、mergeability，並在 merge 前重新檢查 | 每個使用 Release Please 的 repo 都必須只合併與 `C` 對應的 candidate；`C` 必須先通過完整 validation、release，以及有 deployment target 時的 deploy。無候選是 no-op；被更新 build 取代的舊 build 可讓位 no-op；其他 mismatch 一律 fail closed。 | deployment 只改變 prerequisite：沒有 target 時以完整 validation 取代 deploy，不改變自動合併要求。candidate 不進人工審核或 merge；失敗後由後續 `main` delivery 重試。 |
@@ -64,10 +64,13 @@ release PR。所有採用 Release Please 的 repo 都必須自動合併這張 ca
 
 每次採用此 standard，至少用目標 repo 的真實設定驗證：
 
-1. 有 deployment target 的一般變更 `C`：所有必要 gate 完成、health readback 回報 `C`。
+1. 有 deployment target 的一般變更 `C`：所有必要 gate 完成。
    **預設（未採用選擇性部署）**：受影響的 app 各自的 deploy step 都會跑，不分是否真的
    受這次變更影響。**若額外採用選擇性部署**：只部署受影響 target。標準要求的是後者
    出現時必須驗證它確實只動受影響的部分，不是要求每個 adoption 都必須實作它。
+   **Readback 同理分層**：若採用 commit-aware health endpoint，驗證其確實回報 `C`；
+   標準預設模板（如 fire-and-forget 呼叫部署 API 後即結束）沒有這個能力時，以「部署
+   API 呼叫成功」作為對應的可觀察驗收，不虛構模板未提供的 commit 級別確認。
 2. 無 deployment target 的 npm／plugin candidate：同一 `C` 的完整 validation 與 `release(C)`
    成功後自動合併，不需人工審核或點擊 merge。
 3. Release candidate：加入非版本檔、錯誤版本、錯誤 base SHA、假 branch／body 或不可 merge
