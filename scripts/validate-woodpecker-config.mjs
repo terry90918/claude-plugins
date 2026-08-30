@@ -115,6 +115,19 @@ function requireDefaultStepFailureHandling(workflow, name) {
   }
 }
 
+function hasSecretReference(value) {
+  if (Array.isArray(value)) return value.some(hasSecretReference);
+  if (value === null || typeof value !== "object") return false;
+
+  return Object.entries(value).some(
+    ([key, nestedValue]) => key === "from_secret" || hasSecretReference(nestedValue),
+  );
+}
+
+function requireNoSecretReferences(workflow, name) {
+  requireValue(!hasSecretReference(workflow), `${name} must not reference a secret`);
+}
+
 function requireNamedSecret(step, stepName) {
   const environment = step?.environment ?? {};
   requireValue(
@@ -149,6 +162,7 @@ if (!existsSync(configDirectory)) {
   }
 
   requireMainEvents(validate, "validate", ["push", "pull_request"]);
+  requireNoSecretReferences(validate, "validate");
   requireValue(
     !hasOwn(validate?.environment, "GITHUB_API_TOKEN"),
     "validate workflow must not receive the named GitHub API token secret",

@@ -79,6 +79,35 @@ test("the validator rejects a named token in the PR-capable validate workflow sc
   });
 });
 
+test("the validator rejects an aliased secret reference in the validate workflow scope", () => {
+  withWorkflowFixture((configDirectory) => {
+    const workflowPath = join(configDirectory, "validate.yml");
+    const workflow = `${readFileSync(workflowPath, "utf8")}\nenvironment:\n  UNTRUSTED_ALIAS:\n    from_secret: GITHUB_API_TOKEN\n`;
+    writeFileSync(workflowPath, workflow);
+
+    const result = validate(configDirectory);
+
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.match(result.stderr, /validate must not reference a secret/i);
+  });
+});
+
+test("the validator rejects an aliased secret reference in the validate step scope", () => {
+  withWorkflowFixture((configDirectory) => {
+    const workflowPath = join(configDirectory, "validate.yml");
+    const workflow = readFileSync(workflowPath, "utf8").replace(
+      "    commands:\n",
+      "    environment:\n      UNTRUSTED_ALIAS:\n        from_secret: GITHUB_API_TOKEN\n    commands:\n",
+    );
+    writeFileSync(workflowPath, workflow);
+
+    const result = validate(configDirectory);
+
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.match(result.stderr, /validate must not reference a secret/i);
+  });
+});
+
 test("the validator requires the canonical filename-derived workflow mapping", () => {
   withWorkflowFixture((configDirectory) => {
     renameSync(join(configDirectory, "release.yml"), join(configDirectory, "release.yaml"));
