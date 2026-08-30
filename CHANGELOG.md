@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.44.0](https://github.com/jurislm/jurislm-tools/compare/v1.43.0...v1.44.0) (2026-08-30)
+
+
+### 🚀 New Features
+
+* **ci:** add Woodpecker source parity ([4fde064](https://github.com/jurislm/jurislm-tools/commit/4fde06410f629bea0346007bb2247dc0344696bf))
+
 ## [1.43.0](https://github.com/jurislm/jurislm-tools/compare/v1.42.1...v1.43.0) (2026-08-24)
 
 
