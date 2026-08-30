@@ -267,6 +267,29 @@ test("the validator rejects an extra github-release command", () => {
   });
 });
 
+for (const { workflowFilename, stepName } of [
+  { workflowFilename: "validate.yml", stepName: "validate" },
+  { workflowFilename: "release.yml", stepName: "github-release" },
+  { workflowFilename: "release.yml", stepName: "release-pr" },
+  { workflowFilename: "release-pr-auto-merge.yml", stepName: "merge-release-pr" },
+]) {
+  test(`the validator rejects a step-level when condition on ${stepName}`, () => {
+    withWorkflowFixture((configDirectory) => {
+      const workflowPath = join(configDirectory, workflowFilename);
+      const workflow = readFileSync(workflowPath, "utf8").replace(
+        `  - name: ${stepName}\n`,
+        `  - name: ${stepName}\n    when:\n      branch: disabled\n`,
+      );
+      writeFileSync(workflowPath, workflow);
+
+      const result = validate(configDirectory);
+
+      assert.notEqual(result.status, 0, result.stderr);
+      assert.match(result.stderr, new RegExp(`${stepName} must not declare a step-level when condition`, "i"));
+    });
+  });
+}
+
 test("the validator rejects a step-level failure override", () => {
   withWorkflowFixture((configDirectory) => {
     const workflowPath = join(configDirectory, "validate.yml");

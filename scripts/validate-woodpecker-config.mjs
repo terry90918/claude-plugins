@@ -115,6 +115,15 @@ function requireDefaultStepFailureHandling(workflow, name) {
   }
 }
 
+function requireUnconditionalStepExecution(workflow, name) {
+  for (const step of list(workflow.steps)) {
+    requireValue(
+      !hasOwn(step, "when"),
+      `${step?.name ?? `${name} step`} must not declare a step-level when condition`,
+    );
+  }
+}
+
 function hasSecretReference(value) {
   if (Array.isArray(value)) return value.some(hasSecretReference);
   if (value === null || typeof value !== "object") return false;
@@ -170,6 +179,7 @@ if (!existsSync(configDirectory)) {
     requireValue(!hasOwn(workflow, "name"), `${name} must derive its workflow name from its filename`);
     requireNoCrossWorkflowState(workflow, name);
     requireDefaultStepFailureHandling(workflow, name);
+    requireUnconditionalStepExecution(workflow, name);
   }
 
   requireMainEvents(validate, "validate", ["push", "pull_request"]);
