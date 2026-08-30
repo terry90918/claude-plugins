@@ -25,6 +25,9 @@ Woodpecker 將 `.woodpecker/` 中每個 YAML 檔視為獨立 workflow。workflow
 agent 上執行，因此設定與腳本不得假設可跨 workflow 共用 workspace、artifacts 或檔案。
 每個 workflow 都必須自行取得它需要的來源與依賴。
 
+所有 steps 使用 Woodpecker 預設的失敗處理；source parity validator 拒絕任何 `failure`
+override，避免 validation 或 release failure 被忽略後仍讓 downstream workflow 視為成功。
+
 `release` 內的 `github-release` 與 `release-pr` 保留既有先後順序；後者只會在前者成功後
 執行。需要 GitHub API 的 main-only steps 只引用既有命名 credential，PR-capable 的
 `validate` workflow 沒有該 credential scope。runtime metadata 只在命令內轉接至既有
@@ -42,7 +45,8 @@ claude plugin validate .
 `validate-woodpecker-config.mjs` 對檔名、trigger、dependency graph、credential scope、
 Release Please pin、release eligibility、auto-merge 與跨 workflow state 禁令做結構驗證。
 policy tests 以暫存 fixture 證明錯誤檔名 mapping、帶副檔名的 dependency、額外
-auto-merge command、PR credential scope 及 workspace sharing 都會失敗。
+auto-merge command、PR credential scope、workspace/artifact sharing 及 step-level failure
+override 都會失敗。
 
 ## Rollback evidence 與受控窗口
 

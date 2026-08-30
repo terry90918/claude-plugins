@@ -106,6 +106,15 @@ function requireNoCrossWorkflowState(workflow, name) {
   }
 }
 
+function requireDefaultStepFailureHandling(workflow, name) {
+  for (const step of list(workflow.steps)) {
+    requireValue(
+      !hasOwn(step, "failure"),
+      `${name} must not override default step failure handling`,
+    );
+  }
+}
+
 function requireNamedSecret(step, stepName) {
   const environment = step?.environment ?? {};
   requireValue(
@@ -136,6 +145,7 @@ if (!existsSync(configDirectory)) {
   for (const [name, workflow] of workflows) {
     requireValue(!hasOwn(workflow, "name"), `${name} must derive its workflow name from its filename`);
     requireNoCrossWorkflowState(workflow, name);
+    requireDefaultStepFailureHandling(workflow, name);
   }
 
   requireMainEvents(validate, "validate", ["push", "pull_request"]);

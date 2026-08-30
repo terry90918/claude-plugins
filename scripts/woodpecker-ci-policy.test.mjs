@@ -170,3 +170,19 @@ test("the validator rejects an extra github-release command", () => {
     assert.match(result.stderr, /github-release must execute only the source-controlled parity command/i);
   });
 });
+
+test("the validator rejects a step-level failure override", () => {
+  withWorkflowFixture((configDirectory) => {
+    const workflowPath = join(configDirectory, "validate.yml");
+    const workflow = readFileSync(workflowPath, "utf8").replace(
+      "    commands:\n",
+      "    failure: ignore\n    commands:\n",
+    );
+    writeFileSync(workflowPath, workflow);
+
+    const result = validate(configDirectory);
+
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.match(result.stderr, /must not override default step failure handling/i);
+  });
+});
