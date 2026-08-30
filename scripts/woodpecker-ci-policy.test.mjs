@@ -177,6 +177,32 @@ test("the validator rejects an additional credential reference in a trusted work
   });
 });
 
+test("the validator rejects a workflow-level secret reference in the release workflow", () => {
+  withWorkflowFixture((configDirectory) => {
+    const workflowPath = join(configDirectory, "release.yml");
+    const workflow = `${readFileSync(workflowPath, "utf8")}\nenvironment:\n  ADDITIONAL_CREDENTIAL:\n    from_secret: ADDITIONAL_CREDENTIAL\n`;
+    writeFileSync(workflowPath, workflow);
+
+    const result = validate(configDirectory);
+
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.match(result.stderr, /release must not reference a secret/i);
+  });
+});
+
+test("the validator rejects a workflow-level secret reference in the auto-merge workflow", () => {
+  withWorkflowFixture((configDirectory) => {
+    const workflowPath = join(configDirectory, "release-pr-auto-merge.yml");
+    const workflow = `${readFileSync(workflowPath, "utf8")}\nenvironment:\n  ADDITIONAL_CREDENTIAL:\n    from_secret: ADDITIONAL_CREDENTIAL\n`;
+    writeFileSync(workflowPath, workflow);
+
+    const result = validate(configDirectory);
+
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.match(result.stderr, /release-pr-auto-merge must not reference a secret/i);
+  });
+});
+
 test("the validator rejects an injected command in the release eligibility block", () => {
   withWorkflowFixture((configDirectory) => {
     const workflowPath = join(configDirectory, "release.yml");

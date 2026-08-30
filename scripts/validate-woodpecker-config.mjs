@@ -128,6 +128,10 @@ function requireNoSecretReferences(workflow, name) {
   requireValue(!hasSecretReference(workflow), `${name} must not reference a secret`);
 }
 
+function requireNoWorkflowSecretReferences(workflow, name) {
+  requireNoSecretReferences({ ...workflow, steps: [] }, name);
+}
+
 function requireNamedSecret(step, stepName) {
   const environment = step?.environment ?? {};
   requireValue(
@@ -211,6 +215,7 @@ if (!existsSync(configDirectory)) {
   );
 
   requireMainEvents(release, "release", ["push"]);
+  requireNoWorkflowSecretReferences(release, "release");
   requireValue(list(release?.depends_on).length === 0, "release must not depend on another workflow");
   const releaseSteps = list(release?.steps);
   const githubRelease = releaseSteps[0];
@@ -243,6 +248,7 @@ if (!existsSync(configDirectory)) {
   );
 
   requireMainEvents(autoMerge, "release-pr-auto-merge", ["push"]);
+  requireNoWorkflowSecretReferences(autoMerge, "release-pr-auto-merge");
   requireValue(
     sameStrings(list(autoMerge?.depends_on), ["validate", "release"]),
     "release-pr-auto-merge must depend on validate and release workflow filenames",
