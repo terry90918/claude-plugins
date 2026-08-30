@@ -1,0 +1,39 @@
+when:
+  - event: push
+    branch: main
+
+steps:
+  - name: github-release
+    image: node:22.22.2-bookworm-slim
+    environment:
+      GITHUB_API_TOKEN:
+        from_secret: GITHUB_API_TOKEN
+    commands:
+      - npx --yes release-please@17.10.4 github-release --token=$GITHUB_API_TOKEN --repo-url=https://github.com/jurislm/jurislm-tools --target-branch=main --config-file=release-please-config.json --manifest-file=.release-please-manifest.json
+  - name: release-pr
+    image: node:22.22.2-bookworm-slim
+    depends_on:
+      - github-release
+    environment:
+      GITHUB_API_TOKEN:
+        from_secret: GITHUB_API_TOKEN
+    commands:
+      - |
+        export DRONE_REPO="$CI_REPO"
+        export DRONE_BRANCH="$CI_COMMIT_BRANCH"
+        export DRONE_COMMIT="$CI_COMMIT_SHA"
+        set +e
+        node scripts/release-eligibility.mjs
+        eligibility_status=$?
+        set -e
+        case "$eligibility_status" in
+          0)
+            npx --yes release-please@17.10.4 release-pr --token=$GITHUB_API_TOKEN --repo-url=https://github.com/jurislm/jurislm-tools --target-branch=main --config-file=release-please-config.json --manifest-file=.release-please-manifest.json
+            ;;
+          10)
+            echo "release-pr skipped: no feat/fix commit in the unreleased range"
+            ;;
+          *)
+            exit "$eligibility_status"
+            ;;
+        esac

@@ -1,0 +1,21 @@
+when:
+  - event: push
+    branch: main
+
+depends_on:
+  - validate
+  - release
+
+concurrency:
+  limit: 1
+
+steps:
+  - name: merge-release-pr
+    image: node:22.22.2-bookworm-slim
+    environment:
+      GITHUB_API_TOKEN:
+        from_secret: GITHUB_API_TOKEN
+    commands:
+      - |
+        export DRONE_COMMIT="$CI_COMMIT_SHA"
+        node scripts/release-pr-auto-merge.mjs
