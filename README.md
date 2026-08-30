@@ -93,6 +93,9 @@ claude plugin validate .
 
 `npm run validate` 會執行 Node 測試、marketplace integrity、Release Please 版本同步、entry-document Markdown lint 與 shell script lint（`shellcheck`）。Plugin 與 marketplace 的 release version 由 Release Please 管理，不得手動修改。
 
+Woodpecker 的 source-parity workflow 與 JUR-215 live-cutover 前置條件見
+[`docs/ci/woodpecker-source-parity.md`](docs/ci/woodpecker-source-parity.md)。
+
 ## Codex App Local Environment
 
 `.codex/environments/environment.toml` 提供 worktree setup 與 JSON／版本同步 actions；setup 刻意維持 no-op，避免為純文字 marketplace 增加不必要的 bootstrap。

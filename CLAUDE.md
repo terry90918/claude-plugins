@@ -126,13 +126,22 @@ bullet list with each type wrapped in backticks, and keep the heading above
 unique in this file — a second occurrence makes the parse target ambiguous
 and the parser now rejects that outright.
 
-Repository quality and Release Please run on the self-hosted Drone instance
-through `.drone.yml`. The `validate` pipeline covers pull requests and pushes
-to `main`; the `release` pipeline runs only after pushes to `main`, reads
-`GITHUB_API_TOKEN` from a repo-scoped Drone secret, cuts any outstanding
-merged release before opening or updating the next release PR, and never
-receives that token in pull-request builds. Do not add overlapping GitHub
-Actions validation or release workflows.
+Repository quality and Release Please currently run on the self-hosted Drone
+instance through `.drone.yml`. The `validate` pipeline covers pull requests
+and pushes to `main`; the `release` pipeline runs only after pushes to `main`,
+uses a repo-scoped named credential, cuts any outstanding merged release before
+opening or updating the next release PR, and never receives that credential in
+pull-request builds. Do not add overlapping GitHub Actions validation or
+release workflows.
+
+JUR-217 adds `.woodpecker/` only as source-controlled parity for those three
+contracts. It does not activate Woodpecker or change repository integration,
+credential provisioning, required-check governance, deploy responsibility, or
+Drone authority. Workflow files are separately named workflows; cross-workflow
+dependencies use filename-derived names and cannot share a workspace. Keep
+`.drone.yml` intact. Live status, release, auto-merge, governance, and rollback
+acceptance remain JUR-215 controlled-window work; see
+[`docs/ci/woodpecker-source-parity.md`](docs/ci/woodpecker-source-parity.md).
 
 ## Delivery authority
 
