@@ -57,7 +57,13 @@ function hasOwn(object, key) {
 }
 
 function sameStrings(actual, expected) {
-  return [...actual].sort().join(",") === [...expected].sort().join(",");
+  if (!Array.isArray(actual) || !Array.isArray(expected) || actual.length !== expected.length) {
+    return false;
+  }
+
+  const sortedActual = [...actual].sort();
+  const sortedExpected = [...expected].sort();
+  return sortedActual.every((value, index) => value === sortedExpected[index]);
 }
 
 function readWorkflow(filename) {
@@ -87,6 +93,10 @@ function requireMainEvents(workflow, name, events) {
   const conditions = list(workflow.when);
   requireValue(conditions.length === 1, `${name} must contain exactly one global when condition`);
   const condition = conditions[0] ?? {};
+  requireValue(
+    sameStrings(Object.keys(condition), ["event", "branch"]),
+    `${name} global when condition must declare only event and branch`,
+  );
   requireValue(
     sameStrings(eventList(condition.event), events),
     `${name} must run only for ${events.join(" and ")}`,

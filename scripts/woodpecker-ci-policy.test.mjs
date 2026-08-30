@@ -290,6 +290,56 @@ for (const { workflowFilename, stepName } of [
   });
 }
 
+for (const workflowFilename of ["validate.yml", "release.yml", "release-pr-auto-merge.yml"]) {
+  test(`the validator rejects an extra global when predicate in ${workflowFilename}`, () => {
+    withWorkflowFixture((configDirectory) => {
+      const workflowPath = join(configDirectory, workflowFilename);
+      const workflow = readFileSync(workflowPath, "utf8").replace(
+        "    branch: main\n",
+        "    branch: main\n    path: docs/**\n",
+      );
+      writeFileSync(workflowPath, workflow);
+
+      const result = validate(configDirectory);
+
+      assert.notEqual(result.status, 0, result.stderr);
+      assert.match(result.stderr, /global when condition must declare only event and branch/i);
+    });
+  });
+}
+
+test("the validator rejects a comma-serialized validate event", () => {
+  withWorkflowFixture((configDirectory) => {
+    const workflowPath = join(configDirectory, "validate.yml");
+    const workflow = readFileSync(workflowPath, "utf8").replace(
+      "  - event: [push, pull_request]\n",
+      "  - event: pull_request,push\n",
+    );
+    writeFileSync(workflowPath, workflow);
+
+    const result = validate(configDirectory);
+
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.match(result.stderr, /validate must run only for push and pull_request/i);
+  });
+});
+
+test("the validator rejects a comma-serialized auto-merge dependency", () => {
+  withWorkflowFixture((configDirectory) => {
+    const workflowPath = join(configDirectory, "release-pr-auto-merge.yml");
+    const workflow = readFileSync(workflowPath, "utf8").replace(
+      "depends_on:\n  - validate\n  - release\n",
+      "depends_on:\n  - release,validate\n",
+    );
+    writeFileSync(workflowPath, workflow);
+
+    const result = validate(configDirectory);
+
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.match(result.stderr, /must depend on validate and release workflow filenames/i);
+  });
+});
+
 test("the validator rejects a step-level failure override", () => {
   withWorkflowFixture((configDirectory) => {
     const workflowPath = join(configDirectory, "validate.yml");
