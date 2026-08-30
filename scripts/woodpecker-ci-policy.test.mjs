@@ -340,6 +340,64 @@ test("the validator rejects a comma-serialized auto-merge dependency", () => {
   });
 });
 
+for (const { workflowFilename, workflowName } of [
+  { workflowFilename: "validate.yml", workflowName: "validate" },
+  { workflowFilename: "release.yml", workflowName: "release" },
+  { workflowFilename: "release-pr-auto-merge.yml", workflowName: "release-pr-auto-merge" },
+]) {
+  test(`the validator rejects an unexpected workflow control in ${workflowFilename}`, () => {
+    withWorkflowFixture((configDirectory) => {
+      const workflowPath = join(configDirectory, workflowFilename);
+      const workflow = `${readFileSync(workflowPath, "utf8")}\nclone: false\n`;
+      writeFileSync(workflowPath, workflow);
+
+      const result = validate(configDirectory);
+
+      assert.notEqual(result.status, 0, result.stderr);
+      assert.match(result.stderr, new RegExp(`${workflowName} workflow must declare only`, "i"));
+    });
+  });
+}
+
+for (const { workflowFilename, stepName } of [
+  { workflowFilename: "validate.yml", stepName: "validate" },
+  { workflowFilename: "release.yml", stepName: "github-release" },
+  { workflowFilename: "release.yml", stepName: "release-pr" },
+  { workflowFilename: "release-pr-auto-merge.yml", stepName: "merge-release-pr" },
+]) {
+  test(`the validator rejects a detached required step on ${stepName}`, () => {
+    withWorkflowFixture((configDirectory) => {
+      const workflowPath = join(configDirectory, workflowFilename);
+      const workflow = readFileSync(workflowPath, "utf8").replace(
+        `  - name: ${stepName}\n`,
+        `  - name: ${stepName}\n    detach: true\n`,
+      );
+      writeFileSync(workflowPath, workflow);
+
+      const result = validate(configDirectory);
+
+      assert.notEqual(result.status, 0, result.stderr);
+      assert.match(result.stderr, new RegExp(`${stepName} must declare only`, "i"));
+    });
+  });
+}
+
+test("the validator rejects a delivery-specific auto-merge concurrency group", () => {
+  withWorkflowFixture((configDirectory) => {
+    const workflowPath = join(configDirectory, "release-pr-auto-merge.yml");
+    const workflow = readFileSync(workflowPath, "utf8").replace(
+      "concurrency:\n  limit: 1\n",
+      "concurrency:\n  limit: 1\n  group: per-delivery\n",
+    );
+    writeFileSync(workflowPath, workflow);
+
+    const result = validate(configDirectory);
+
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.match(result.stderr, /release-pr-auto-merge concurrency must declare only limit/i);
+  });
+});
+
 test("the validator rejects a step-level failure override", () => {
   withWorkflowFixture((configDirectory) => {
     const workflowPath = join(configDirectory, "validate.yml");

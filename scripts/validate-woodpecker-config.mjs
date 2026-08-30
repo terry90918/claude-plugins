@@ -66,6 +66,16 @@ function sameStrings(actual, expected) {
   return sortedActual.every((value, index) => value === sortedExpected[index]);
 }
 
+function requireOnlyKeys(value, expectedKeys, name) {
+  requireValue(
+    value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      sameStrings(Object.keys(value), expectedKeys),
+    `${name} must declare only ${expectedKeys.join(", ")}`,
+  );
+}
+
 function readWorkflow(filename) {
   const path = join(configDirectory, filename);
   if (!existsSync(path)) {
@@ -192,6 +202,7 @@ if (!existsSync(configDirectory)) {
     requireUnconditionalStepExecution(workflow, name);
   }
 
+  requireOnlyKeys(validate, ["when", "steps"], "validate workflow");
   requireMainEvents(validate, "validate", ["push", "pull_request"]);
   requireNoSecretReferences(validate, "validate");
   requireValue(
@@ -206,6 +217,7 @@ if (!existsSync(configDirectory)) {
   const validateStep = validateSteps[0];
   requireValue(validateSteps.length === 1, "validate must contain exactly one validate step");
   requireValue(validateStep?.name === "validate", "validate must name its only step validate");
+  requireOnlyKeys(validateStep, ["name", "image", "commands"], "validate");
   requireValue(
     validateStep?.image === "node:22.22.2-bookworm-slim",
     "validate must use the exact supported Node image",
@@ -241,6 +253,7 @@ if (!existsSync(configDirectory)) {
     "validate must bridge Woodpecker metadata before npm ci and npm run validate",
   );
 
+  requireOnlyKeys(release, ["when", "steps"], "release workflow");
   requireMainEvents(release, "release", ["push"]);
   requireNoWorkflowSecretReferences(release, "release");
   requireValue(list(release?.depends_on).length === 0, "release must not depend on another workflow");
@@ -250,6 +263,12 @@ if (!existsSync(configDirectory)) {
   requireValue(releaseSteps.length === 2, "release must contain github-release and release-pr steps");
   requireValue(githubRelease?.name === "github-release", "release must start with github-release");
   requireValue(releasePr?.name === "release-pr", "release must run release-pr second");
+  requireOnlyKeys(githubRelease, ["name", "image", "environment", "commands"], "github-release");
+  requireOnlyKeys(
+    releasePr,
+    ["name", "image", "depends_on", "environment", "commands"],
+    "release-pr",
+  );
   requireValue(
     sameStrings(list(releasePr?.depends_on), ["github-release"]),
     "release-pr must depend on github-release",
@@ -274,12 +293,18 @@ if (!existsSync(configDirectory)) {
     "release-pr must execute only the source-controlled parity command",
   );
 
+  requireOnlyKeys(
+    autoMerge,
+    ["when", "depends_on", "concurrency", "steps"],
+    "release-pr-auto-merge workflow",
+  );
   requireMainEvents(autoMerge, "release-pr-auto-merge", ["push"]);
   requireNoWorkflowSecretReferences(autoMerge, "release-pr-auto-merge");
   requireValue(
     sameStrings(list(autoMerge?.depends_on), ["validate", "release"]),
     "release-pr-auto-merge must depend on validate and release workflow filenames",
   );
+  requireOnlyKeys(autoMerge?.concurrency, ["limit"], "release-pr-auto-merge concurrency");
   requireValue(autoMerge?.concurrency?.limit === 1, "release-pr-auto-merge must serialize deliveries");
   const autoMergeSteps = list(autoMerge?.steps);
   const autoMergeStep = autoMergeSteps[0];
@@ -287,6 +312,11 @@ if (!existsSync(configDirectory)) {
   requireValue(
     autoMergeStep?.name === "merge-release-pr",
     "release-pr-auto-merge must name its only step merge-release-pr",
+  );
+  requireOnlyKeys(
+    autoMergeStep,
+    ["name", "image", "environment", "commands"],
+    "merge-release-pr",
   );
   requireValue(
     autoMergeStep?.image === "node:22.22.2-bookworm-slim",
