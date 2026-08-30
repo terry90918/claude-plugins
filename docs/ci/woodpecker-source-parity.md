@@ -33,6 +33,13 @@ override，避免 validation 或 release failure 被忽略後仍讓 downstream w
 `validate` workflow 沒有該 credential scope。runtime metadata 只在命令內轉接至既有
 release eligibility 與 auto-merge script 所需的欄位，不讀取或記錄 credential 值。
 
+Woodpecker 文件提供 PR number 與 commit message，但未文件化 PR title。為保留既有 PR
+title 合約，`validate-woodpecker-pr-title.mjs` 僅在 PR event 以 PR number 向本 public
+repository 的 public metadata endpoint 讀取 title；它不傳遞 credential，對非成功、格式
+不符、逾時或不預期 repository 一律 fail closed。push 則不做這項 metadata read，並由
+既有 squash-subject validator 使用文件化的 commit message。這是 source-level 模擬，
+不是已完成的 live network acceptance。
+
 ## 本地驗證
 
 ```bash
@@ -46,7 +53,8 @@ claude plugin validate .
 Release Please pin、release eligibility、auto-merge 與跨 workflow state 禁令做結構驗證。
 policy tests 以暫存 fixture 證明錯誤檔名 mapping、帶副檔名的 dependency、額外
 auto-merge command、PR credential scope、workspace/artifact sharing 及 step-level failure
-override 都會失敗。
+override 都會失敗。PR title adapter tests 使用 mock metadata response，覆蓋正確 title、
+非 PR skip、無效 title、非成功 response 與不完整 metadata 的 fail-closed 行為。
 
 ## Rollback evidence 與受控窗口
 
@@ -59,7 +67,9 @@ rollback proof 至少應保留：revert commit、`git diff --check`、四項本�
 
 1. 由授權 owner 完成平台 repository activation、OAuth/webhook 與命名 credential
    provision；不得在 source review 或 evidence 中揭露值、token、header 或 scope。
-2. 在 exact PR head 取得 Woodpecker status readback，並記錄實際 check context。
+2. 在 exact PR head 取得 Woodpecker status readback，並記錄實際 check context；同時驗證
+   Woodpecker agent 對 public PR metadata endpoint 的 egress、rate behavior 與 title read
+   成功，且不新增 PR credential scope。
 3. 由 owner 取得 temporary required-check governance 的變更前後 readback；JUR-217
    不會修改這項設定。
 4. 在 trusted `main` 取得 `validate`、`release` 與 `release-pr-auto-merge` 的實際

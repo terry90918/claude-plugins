@@ -41,6 +41,15 @@ test("the repository exposes a direct Woodpecker structural validation command",
   assert.equal(result.status, 0, result.stderr);
 });
 
+test("the validate workflow bridges only documented Woodpecker metadata", () => {
+  const workflow = readFileSync(".woodpecker/validate.yml", "utf8");
+
+  assert.match(workflow, /export DRONE_PULL_REQUEST="\$CI_COMMIT_PULL_REQUEST"/);
+  assert.match(workflow, /export DRONE_COMMIT_MESSAGE="\$CI_COMMIT_MESSAGE"/);
+  assert.match(workflow, /node scripts\/validate-woodpecker-pr-title\.mjs/);
+  assert.doesNotMatch(workflow, /DRONE_PULL_REQUEST_TITLE/);
+});
+
 test("the validator rejects an auto-merge workflow with an extra command", () => {
   withWorkflowFixture((configDirectory) => {
     const workflowPath = join(configDirectory, "release-pr-auto-merge.yml");

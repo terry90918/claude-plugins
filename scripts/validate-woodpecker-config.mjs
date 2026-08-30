@@ -169,10 +169,17 @@ if (!existsSync(configDirectory)) {
     !hasOwn(validateStep?.environment, "GITHUB_API_TOKEN"),
     "validate must not receive the named GitHub API token secret",
   );
-  const validateCommands = list(validateStep?.commands);
-  const expectedValidateCommands = [
-    "node scripts/validate-pr-title.mjs",
+  const validateCommands = list(validateStep?.commands).map((command) =>
+    typeof command === "string" ? command.trim() : command,
+  );
+  const expectedValidateMetadataBridge = [
+    'export DRONE_PULL_REQUEST="$CI_COMMIT_PULL_REQUEST"',
+    'export DRONE_COMMIT_MESSAGE="$CI_COMMIT_MESSAGE"',
+    "node scripts/validate-woodpecker-pr-title.mjs",
     "node scripts/validate-squash-subject.mjs",
+  ].join("\n");
+  const expectedValidateCommands = [
+    expectedValidateMetadataBridge,
     "apt-get update -qq && apt-get install -y --no-install-recommends git jq shellcheck python3 -qq",
     "npm ci",
     "npm run validate",
@@ -182,10 +189,11 @@ if (!existsSync(configDirectory)) {
     "validate must retain the complete source validation command set",
   );
   requireValue(
-    validateCommands.indexOf("node scripts/validate-pr-title.mjs") < validateCommands.indexOf("npm ci") &&
-      validateCommands.indexOf("node scripts/validate-squash-subject.mjs") < validateCommands.indexOf("npm ci") &&
+    validateCommands.indexOf(expectedValidateMetadataBridge) === 0 &&
+      validateCommands.indexOf("apt-get update -qq && apt-get install -y --no-install-recommends git jq shellcheck python3 -qq") <
+        validateCommands.indexOf("npm ci") &&
       validateCommands.indexOf("npm ci") < validateCommands.indexOf("npm run validate"),
-    "validate must run both commit checks before npm ci and npm run validate",
+    "validate must bridge Woodpecker metadata before npm ci and npm run validate",
   );
 
   requireMainEvents(release, "release", ["push"]);

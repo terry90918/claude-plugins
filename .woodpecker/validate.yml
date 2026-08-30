@@ -6,8 +6,11 @@ steps:
   - name: validate
     image: node:22.22.2-bookworm-slim
     commands:
-      - node scripts/validate-pr-title.mjs
-      - node scripts/validate-squash-subject.mjs
+      - |
+        export DRONE_PULL_REQUEST="$CI_COMMIT_PULL_REQUEST"
+        export DRONE_COMMIT_MESSAGE="$CI_COMMIT_MESSAGE"
+        node scripts/validate-woodpecker-pr-title.mjs
+        node scripts/validate-squash-subject.mjs
       - apt-get update -qq && apt-get install -y --no-install-recommends git jq shellcheck python3 -qq
       - npm ci
       - npm run validate
