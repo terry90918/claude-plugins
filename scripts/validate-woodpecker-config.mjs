@@ -141,6 +141,13 @@ function requireNamedSecret(step, stepName) {
   );
 }
 
+function requireOnlyNamedSecret(step, stepName) {
+  requireNamedSecret(step, stepName);
+  const stepWithoutNamedSecret = { ...step, environment: { ...(step?.environment ?? {}) } };
+  delete stepWithoutNamedSecret.environment.GITHUB_API_TOKEN;
+  requireNoSecretReferences(stepWithoutNamedSecret, stepName);
+}
+
 if (!existsSync(configDirectory)) {
   errors.push(`missing Woodpecker workflow directory: ${configDirectory}`);
 } else {
@@ -232,7 +239,7 @@ if (!existsSync(configDirectory)) {
       step?.image === "node:22.22.2-bookworm-slim",
       `${step?.name ?? "release step"} must use the exact supported Node image`,
     );
-    requireNamedSecret(step, step?.name ?? "release step");
+    requireOnlyNamedSecret(step, step?.name ?? "release step");
   }
   const githubReleaseCommands = list(githubRelease?.commands);
   const githubReleaseCommand = githubReleaseCommands[0] ?? "";
@@ -265,7 +272,7 @@ if (!existsSync(configDirectory)) {
     autoMergeStep?.image === "node:22.22.2-bookworm-slim",
     "release-pr-auto-merge must use the exact supported Node image",
   );
-  requireNamedSecret(autoMergeStep, "release-pr-auto-merge");
+  requireOnlyNamedSecret(autoMergeStep, "release-pr-auto-merge");
   const autoMergeCommands = list(autoMergeStep?.commands);
   const autoMergeCommand = autoMergeCommands[0] ?? "";
   const expectedAutoMergeCommand = [

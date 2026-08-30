@@ -203,6 +203,38 @@ test("the validator rejects a workflow-level secret reference in the auto-merge 
   });
 });
 
+test("the validator rejects a secret reference in release step settings", () => {
+  withWorkflowFixture((configDirectory) => {
+    const workflowPath = join(configDirectory, "release.yml");
+    const workflow = readFileSync(workflowPath, "utf8").replace(
+      "    commands:\n",
+      "    settings:\n      ADDITIONAL_CREDENTIAL:\n        from_secret: ADDITIONAL_CREDENTIAL\n    commands:\n",
+    );
+    writeFileSync(workflowPath, workflow);
+
+    const result = validate(configDirectory);
+
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.match(result.stderr, /github-release must not reference a secret/i);
+  });
+});
+
+test("the validator rejects a secret reference in auto-merge step settings", () => {
+  withWorkflowFixture((configDirectory) => {
+    const workflowPath = join(configDirectory, "release-pr-auto-merge.yml");
+    const workflow = readFileSync(workflowPath, "utf8").replace(
+      "    commands:\n",
+      "    settings:\n      ADDITIONAL_CREDENTIAL:\n        from_secret: ADDITIONAL_CREDENTIAL\n    commands:\n",
+    );
+    writeFileSync(workflowPath, workflow);
+
+    const result = validate(configDirectory);
+
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.match(result.stderr, /release-pr-auto-merge must not reference a secret/i);
+  });
+});
+
 test("the validator rejects an injected command in the release eligibility block", () => {
   withWorkflowFixture((configDirectory) => {
     const workflowPath = join(configDirectory, "release.yml");
